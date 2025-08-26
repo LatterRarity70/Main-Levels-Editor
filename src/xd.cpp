@@ -451,7 +451,7 @@ protected:
                             //path
                             auto path = e->getValue()->unwrap(); 
                             path = string::endsWith(string::pathToString(path), ".level"
-                            ) ? path : (string::pathToString(path) + ".level");
+                            ) ? string::pathToString(path) : (string::pathToString(path) + ".level");
                             //dir
                             auto dir = path.parent_path();
                             //exporting.

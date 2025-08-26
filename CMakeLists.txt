@@ -3,14 +3,13 @@ set(CMAKE_TLS_VERIFY 0) # Disable SSL verification because something is broken w
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "iOS" OR IOS)
     set(CMAKE_OSX_ARCHITECTURES "arm64")
 else()
     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 endif()
 
-project(MAIN_LEVELS_EDITOR VERSION 8.0.0 LANGUAGES CXX)
+project(main)
 
 file(GLOB SOURCES src/*.cpp) # yea... i wanted to seperate code to multiple files but its so stupid to do
 message(${SOURCES})

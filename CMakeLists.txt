@@ -12,11 +12,11 @@ endif()
 
 project(MAIN_LEVELS_EDITOR VERSION 8.0.0 LANGUAGES CXX)
 
-add_library(${PROJECT_NAME} SHARED
-    src/_main.cpp
-    # No any more extra C++ source files here.
-)
-include_directories(src)
+file(GLOB SOURCES src/*.cpp) # yea... i wanted to seperate code to multiple files but its so stupid to do
+message(${SOURCES})
+add_library(${PROJECT_NAME} SHARED ${SOURCES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 if (NOT DEFINED ENV{GEODE_SDK})
     message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")

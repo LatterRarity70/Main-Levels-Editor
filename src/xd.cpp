@@ -451,7 +451,7 @@ protected:
                             //path
                             auto path = e->getValue()->unwrap(); 
                             path = string::endsWith(string::pathToString(path), ".level"
-                            ) ? path : string::pathToString(path) + ".level";
+                            ) ? path : (string::pathToString(path) + ".level");
                             //dir
                             auto dir = path.parent_path();
                             //exporting.
@@ -525,7 +525,7 @@ protected:
                 namespace fs = std::filesystem;
                 auto packs = getMod()->getConfigDir().parent_path() / "geode.texture-loader" / "packs";
                 auto pack = packs / fmt::format(
-                    "level pack by {} #{}", GameManager::get()->m_playerName,
+                    "level pack by {} #{}", GameManager::get()->m_playerName.c_str(),
                     std::chrono::system_clock::now().time_since_epoch().count()
                 );
                 fs::create_directories(pack, err);
@@ -547,7 +547,7 @@ protected:
                 json.set("id", fmt::format("mle.level-pack{}", std::chrono::system_clock::now().time_since_epoch().count()));
                 json.set("name", "Level Pack");
                 json.set("version", getMod()->getVersion().toVString());
-                json.set("author", GameManager::get()->m_playerName);
+                json.set("author", GameManager::get()->m_playerName.c_str());
                 if (auto err = file::writeToJson(pack / "pack.json", json).err()) Notification::create(
                     "Create settings err:\n" + err.value_or("UNK ERROR"), NotificationIcon::Error
                 )->show();

@@ -565,11 +565,17 @@ protected:
                 //remove pack dir
                 fs::remove_all(pack, err);
                 //show packs
-                Ref popup = VideoOptionsLayer::create();
+                Ref options = OptionsLayer::create();
+                auto item = typeinfo_cast<CCMenuItem*>(options->querySelector(
+                    "geode.texture-loader/texture-loader-button"
+                ));
+                if (item) return item->activate();
+#ifdef GEODE_IS_DESKTOP //ios scared me
+                options->onVideo(options);
                 __this->runAction(CCSequence::create(
                     CallFuncExt::create(
-                        [popup] {
-                            auto item = typeinfo_cast<CCMenuItem*>(popup->querySelector(
+                        [] {
+                            auto item = typeinfo_cast<CCMenuItem*>(CCScene::get()->querySelector(
                                 "geode.texture-loader/texture-loader-button"
                             ));
                             if (item) item->activate();
@@ -583,10 +589,13 @@ protected:
                             ));
                             if (item) item->activate();
                             else log::error("reload-button = {}", item);
+
+                            if (Ref a = CCScene::get()->getChildByType<VideoOptionsLayer>(0)) a->keyBackClicked();
                         }
                     ),
                     nullptr
                 ));
+#endif
             }
         );
         tp_create->setLayoutOptions(lopts);

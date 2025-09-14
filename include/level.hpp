@@ -17,13 +17,13 @@ namespace level {
         json.set("recordString", std::string(level->m_recordString.c_str())); //["recordString"] = std::string(level->m_recordString.c_str());
         json.set("uploadDate", std::string(level->m_uploadDate.c_str())); //["uploadDate"] = std::string(level->m_uploadDate.c_str());
         json.set("updateDate", std::string(level->m_updateDate.c_str())); //["updateDate"] = std::string(level->m_updateDate.c_str());
-        json.set("unkString1", std::string(level->m_unkString1.c_str())); //["unkString1"] = std::string(level->m_unkString1.c_str());
-        json.set("unkString2", std::string(level->m_unkString2.c_str())); //["unkString2"] = std::string(level->m_unkString2.c_str());
-        { // CCPoint m_unkPoint
+        json.set("lockedEditorLayers", std::string(level->m_lockedEditorLayers.c_str())); //["lockedEditorLayers"] = std::string(level->m_lockedEditorLayers.c_str());
+        json.set("savedCameraPositions", std::string(level->m_savedCameraPositions.c_str())); //["savedCameraPositions"] = std::string(level->m_savedCameraPositions.c_str());
+        { // CCPoint m_previewLock
             matjson::Value pt;
-            pt.set("x", level->m_unkPoint.x); //["x"] = level->m_unkPoint.x;
-            pt.set("y", level->m_unkPoint.y); //["y"] = level->m_unkPoint.y;
-            json.set("unkPoint", pt); //["unkPoint"] = pt;
+            pt.set("x", level->m_previewLock.x); //["x"] = level->m_previewLock.x;
+            pt.set("y", level->m_previewLock.y); //["y"] = level->m_previewLock.y;
+            json.set("previewLock", pt); //["previewLock"] = pt;
         }
         json.set("userID", level->m_userID.value()); //["userID"] = level->m_userID.value();
         json.set("accountID", level->m_accountID.value()); //["accountID"] = level->m_accountID.value();
@@ -107,7 +107,7 @@ namespace level {
             pt.set("y", level->m_lastCameraPos.y); //"["y"] = level->m_lastCameraPos.y;
             json.set("lastCameraPos", pt); //["lastCameraPos"] = pt;
         }
-        json.set("fastEditorZoom", level->m_fastEditorZoom); //["fastEditorZoom"] = level->m_fastEditorZoom;
+        json.set("lastEditorZoom", level->m_lastEditorZoom); //["lastEditorZoom"] = level->m_lastEditorZoom;
         json.set("lastBuildTab", level->m_lastBuildTab); //["lastBuildTab"] = level->m_lastBuildTab;
         json.set("lastBuildPage", level->m_lastBuildPage); //["lastBuildPage"] = level->m_lastBuildPage;
         json.set("lastBuildGroupID", level->m_lastBuildGroupID); //["lastBuildGroupID"] = level->m_lastBuildGroupID;
@@ -125,9 +125,9 @@ namespace level {
         json.set("field_54", level->m_54); //["field_54"] = level->m_54;
         json.set("bestTime", level->m_bestTime); //["bestTime"] = level->m_bestTime;
         json.set("bestPoints", level->m_bestPoints); //["bestPoints"] = level->m_bestPoints;
-        json.set("k111", level->m_k111); //["k111"] = level->m_k111;
-        json.set("unkString3", std::string(level->m_unkString3.c_str())); //["unkString3"] = std::string(level->m_unkString3.c_str());
-        json.set("unkString4", std::string(level->m_unkString4.c_str())); //["unkString4"] = std::string(level->m_unkString4.c_str());
+        json.set("platformerSeed", level->m_platformerSeed); //["platformerSeed"] = level->m_platformerSeed;
+        json.set("localBestTimes", std::string(level->m_localBestTimes.c_str())); //["localBestTimes"] = std::string(level->m_localBestTimes.c_str());
+        json.set("localBestPoints", std::string(level->m_localBestPoints.c_str())); //["localBestPoints"] = std::string(level->m_localBestPoints.c_str());
 
         json.set("levelString", std::string(level->m_levelString.c_str())); //["levelString"] = std::string(level->m_levelString.c_str());
 
@@ -150,12 +150,12 @@ namespace level {
         asString(recordString);// = json["recordString"].asString().unwrapOr().c_str();
         asString(uploadDate);// = json["uploadDate"].asString().unwrapOr().c_str();
         asString(updateDate);// = json["updateDate"].asString().unwrapOr().c_str();
-        asString(unkString1);// = json["unkString1"].asString().unwrapOr().c_str();
-        asString(unkString2);// = json["unkString2"].asString().unwrapOr().c_str();
-        { // CCPoint m_unkPoint
-            matjson::Value pt = json["unkPoint"];
-            asDouble(unkPoint.x);// = pt["x"].asDouble().unwrapOr();
-            asDouble(unkPoint.y);// = pt["y"].asDouble().unwrapOr();
+        asString(lockedEditorLayers);// = json["lockedEditorLayers"].asString().unwrapOr().c_str();
+        asString(savedCameraPositions);// = json["savedCameraPositions"].asString().unwrapOr().c_str();
+        { // CCPoint m_previewLock
+            matjson::Value pt = json["previewLock"];
+            asDouble(previewLock.x);// = pt["x"].asDouble().unwrapOr();
+            asDouble(previewLock.y);// = pt["y"].asDouble().unwrapOr();
         }
         asSeed(userID);// = json["userID"].asInt().unwrapOr();
         asSeed(accountID);// = json["accountID"].asInt().unwrapOr();
@@ -238,7 +238,7 @@ namespace level {
             asDouble(lastCameraPos.x);// = pt["x"].asDouble().unwrapOr();
             asDouble(lastCameraPos.y);// = pt["y"].asDouble().unwrapOr();
         }
-        asDouble(fastEditorZoom);// = json["fastEditorZoom"].asDouble().unwrapOr();
+        asDouble(lastEditorZoom);// = json["lastEditorZoom"].asDouble().unwrapOr();
         asInt(lastBuildTab);// = json["lastBuildTab"].asInt().unwrapOr();
         asInt(lastBuildPage);// = json["lastBuildPage"].asInt().unwrapOr();
         asInt(lastBuildGroupID);// = json["lastBuildGroupID"].asInt().unwrapOr();
@@ -256,9 +256,9 @@ namespace level {
         //asInt(54);// = json["field_54"].asInt().unwrapOr();
         asInt(bestTime);// = json["bestTime"].asInt().unwrapOr();
         asInt(bestPoints);// = json["bestPoints"].asInt().unwrapOr();
-        asInt(k111);// = json["k111"].asInt().unwrapOr();
-        asString(unkString3);// = json["unkString3"].asString().unwrapOr().c_str();
-        asString(unkString4);// = json["unkString4"].asString().unwrapOr().c_str();
+        asInt(platformerSeed);// = json["platformerSeed"].asInt().unwrapOr();
+        asString(localBestTimes);// = json["localBestTimes"].asString().unwrapOr().c_str();
+        asString(localBestPoints);// = json["localBestPoints"].asString().unwrapOr().c_str();
 
 #undef asInt//(member, ...) level->m_##member = __VA_ARGS__(json[#member""].asInt().unwrapOr(static_cast<int>(level->m_##member)));
 #undef asSeed//(member) level->m_##member = json[#member""].as<int>().unwrapOr(level->m_##member.value());

@@ -6,7 +6,7 @@ namespace level {
 #define ps(...) string::pathToString(__VA_ARGS__)
 
     matjson::Value jsonFromLevel(Ref<GJGameLevel> level) {
-        level = level ? level : GJGameLevel::create();
+        if (!level) level = GJGameLevel::create();
 if (!level) {log::error("jsnfrlvl lvl is {}", level.data()); return "lvl was nil ptr";};
         auto json = matjson::Value();
         json.set("levelID", level->m_levelID.value()); //["levelID"] = level->m_levelID.value();

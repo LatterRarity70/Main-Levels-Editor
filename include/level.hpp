@@ -351,7 +351,15 @@ log::error("{}", __FUNCTION__);
         if (!level) return Err("level ptr is null.");
         if (!typeinfo_cast<GJGameLevel*>(level)) return Err("level ptr is not GJGameLevel typed in RTTI.");
 log::error("{}", __LINE__);
-        GEODE_UNWRAP_INTO(auto file, file::Unzip::create(from));
+
+unsigned long fileSize = 0;
+unsigned char* fileData = CCFileUtils::sharedFileUtils()->getFileData(ps(from).c_str(), "rb", &fileSize);
+if (!fileData) return Err("can't read file");
+std::vector<uint8_t> fileBytes(fileData, fileData + fileSize);
+delete[] fileData;
+log::error("{}", __LINE__);
+GEODE_UNWRAP_INTO(auto file, file::Unzip::create(fileBytes));
+
 log::error("{}", __LINE__);
         GEODE_UNWRAP_INTO(auto __data_read, file.extract("_data.json"));
 log::error("{}", __LINE__);

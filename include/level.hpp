@@ -5,8 +5,9 @@
 namespace level {
 #define ps(...) string::pathToString(__VA_ARGS__)
 
-    matjson::Value jsonFromLevel(GJGameLevel* level) {
+    matjson::Value jsonFromLevel(Ref<GJGameLevel> level) {
         level = level ? level : GJGameLevel::create();
+if (!level) {log::error("jsnfrlvl lvl is {}", level.data()); return "lvl was nil ptr";};
         auto json = matjson::Value();
         json.set("levelID", level->m_levelID.value()); //["levelID"] = level->m_levelID.value();
         json.set("levelName", std::string(level->m_levelName.c_str())); //["levelName"] = std::string(level->m_levelName.c_str());
@@ -133,7 +134,8 @@ namespace level {
         return json;
     }
 
-    void updateLevelByJson(const matjson::Value& json, GJGameLevel* level) {
+    void updateLevelByJson(const matjson::Value& json, Ref<GJGameLevel> level) {
+if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data()); 
         //log::debug("{} update by json: {}", level, json.dump());
 #define asInt(member, ...) level->m_##member = __VA_ARGS__(json.get(#member"").unwrapOr(static_cast<int>(level->m_##member)).asInt().unwrapOr(static_cast<int>(level->m_##member)));
 #define asSeed(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member.value()).as<int>().unwrapOr(level->m_##member.value());

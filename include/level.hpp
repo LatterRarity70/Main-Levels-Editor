@@ -363,7 +363,7 @@ GEODE_UNWRAP_INTO(auto file, file::Unzip::create(fileBytes));
 log::error("{}", __LINE__);
         GEODE_UNWRAP_INTO(auto __data_read, file.extract("_data.json"));
 log::error("{}", __LINE__);
-        auto data = matjson::parse(std::string(__data_read.begin(), __data_read.end()))).unwrapOrDefault();
+        auto data = matjson::parse(std::string(__data_read.begin(), __data_read.end())).unwrapOrDefault();
         log::error("{}", __LINE__);
         updateLevelByJson(data, level);
         log::error("{}", __LINE__);

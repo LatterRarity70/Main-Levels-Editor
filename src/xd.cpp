@@ -1,3 +1,9 @@
+
+
+// the custom shared level format ".level" like ".gmd2", saves audio and almost ALL level data.
+// created by because of the limitations of ".gmd" format, made same way as that one
+#include <level.hpp>
+
 #include <Geode/Geode.hpp>
 #include <Geode/ui/GeodeUI.hpp>
 
@@ -7,10 +13,6 @@ using namespace geode::prelude;
 #define VERIFY_LEVEL_INTEGRITY getMod()->getSettingValue<bool>("VERIFY_LEVEL_INTEGRITY")
 #define REPLACE_DIFFICULTY_SPRITE getMod()->getSettingValue<bool>("REPLACE_DIFFICULTY_SPRITE")
 #define TYPE_AND_ID_HACKS_FOR_SECRET_COINS getMod()->getSettingValue<bool>("TYPE_AND_ID_HACKS_FOR_SECRET_COINS")
-
-// the custom shared level format ".level" like ".gmd2", saves audio and almost ALL level data.
-// created by because of the limitations of ".gmd" format, made same way as that one
-#include <level.hpp>
 
 // Some helper functions
 namespace mle {
@@ -149,6 +151,8 @@ protected:
                     NotificationIcon::Error
                 )->show();
                 else Notification::create("level saved to file!", NotificationIcon::Info)->show();
+                LocalLevelManager::get()->init();
+                Notification::create("local level manager was reinitialized", NotificationIcon::Info)->show();
             }
         );
         save_level->m_scaleMultiplier = 0.95;
@@ -157,7 +161,7 @@ protected:
         this->m_buttonMenu->addChildAtPosition(save_level, Anchor::BottomRight, { -bottomMenuPaddingX, bottomMenuY });
 
         CCMenuItemSpriteExtra* sort = CCMenuItemExt::createSpriteExtra(
-            SimpleTextArea::create("move to top main levels related values")->getLines()[0],
+            SimpleTextArea::create("[Move to top Main Levels related]")->getLines()[0],
             [scroll](auto) {
                 findFirstChildRecursive<CCLayerColor>(scroll->m_contentLayer, [](auto me) {
                     if (me->getOpacity() == 90) me->setZOrder(me->getZOrder() == me->getTag() ? -1 : me->getTag());
@@ -245,13 +249,18 @@ protected:
             btnspr("Reload levels cache!"),
             [__this = Ref(this)](auto) {
                 LocalLevelManager::get()->init();
-                //(LevelSelectLayer::create(__this = Ref(this)->m_scrollLayer->m_page));
+                if (auto s = CCScene::get()) if (auto l = s->getChildByType<LevelSelectLayer>(
+                    0 // LevelSelectLayer
+                )) l->keyBackClicked();
                 Notification::create("local level manager was reinitialized", NotificationIcon::Info)->show();
             }
         );
 		reload_levels_cache->setLayoutOptions(lopts);
         reload_levels_cache->setID("reload_levels_cache"_spr);
         menu->addChild(reload_levels_cache);
+
+        static Ref shReload = reload_levels_cache;
+        shReload = reload_levels_cache;
 
         menu->addChild(CCLayerColor::create({ 0,0,0,0 }, 12, 6));
 
@@ -313,7 +322,7 @@ protected:
             }
         );
 		load_level->setLayoutOptions(lopts);
-        load_level->setID("export_level"_spr);
+        load_level->setID("load_level"_spr);
         menu->addChild(load_level);
 
         CCMenuItemSpriteExtra* edit_level = CCMenuItemExt::createSpriteExtra(
@@ -405,7 +414,8 @@ protected:
                 }
                 else {
                     auto tarp = std::find(list.begin(), list.end(), target_id);
-                    list.insert(tarp, target_id);
+					list.erase(tarp);
+					list.insert(tarp, target_id);
                 }
 
                 std::string new_listing;
@@ -426,7 +436,9 @@ protected:
                 Mod::get()->setSettingValue<std::string>("LEVELS_LISTING", new_listing);
                 Mod::get()->saveData().isOk();
 
-                Notification::create("Level inserted to list!", NotificationIcon::Success)->show();
+                Notification::create("Level inserted to list!", NotificationIcon::Success)->show(); 
+                
+                shReload->activate();
             }
         );
 		insert_to_level_list->setLayoutOptions(lopts);
@@ -487,6 +499,8 @@ protected:
                                     body.str(),
                                     "Ok"
                                 )->show();
+
+                                shReload->activate();
                             }
                             else {
                                 //aaaa msg
@@ -1381,9 +1395,10 @@ class $modify(MLE_GameObjectExt, GameObject) {
         gd::vector<gd::string>&p0, gd::vector<void*>&p1, GJBaseGameLayer * p2, bool p3
     ) {
         auto rtn = GameObject::objectFromVector(p0, p1, p2, p3);
+        if (!rtn) return rtn;
         if (TYPE_AND_ID_HACKS_FOR_SECRET_COINS) {
             if (auto editor = typeinfo_cast<LevelEditorLayer*>(p2)) {
-                if (rtn->m_objectID == 142) {
+                if (rtn) if (rtn->m_objectID == 142) {
                     rtn->setUserObject("org-"_spr + std::string("m_objectID"), valTagContainerObj(rtn->m_objectID));
                     rtn->m_objectID = 1329; //user coin object id
                     rtn->setUserObject("org-"_spr + std::string("m_objectType"), valTagContainerObj((int)rtn->m_objectType));
@@ -1394,7 +1409,7 @@ class $modify(MLE_GameObjectExt, GameObject) {
                 }
             };
             if (auto play = typeinfo_cast<PlayLayer*>(p2)) {
-                if (rtn->m_objectID == 142) {
+                if (rtn) if (rtn->m_objectID == 142) {
                     auto lvl = play->m_level;
                     lvl->setUserObject("org-"_spr + std::string("m_localOrSaved"), valTagContainerObj(lvl->m_localOrSaved));
                     lvl->m_localOrSaved = true;

@@ -3,24 +3,76 @@
 // the custom shared level format ".level" like ".gmd2", saves audio and almost ALL level data.
 // created by because of the limitations of ".gmd" format, made same way as that one
 namespace level {
-#define ps(...) string::pathToString(__VA_ARGS__)
 
-    matjson::Value jsonFromLevel(Ref<GJGameLevel> level) {
+    //why
+    namespace json = matjson;
+    namespace json = matjson;
+    namespace sdk = geode::prelude;
+    namespace utils = sdk::utils;
+    namespace str = sdk::string;
+    namespace log = sdk::log;
+    namespace fs {
+		using namespace std::filesystem;
+		using namespace sdk::file;
+    }
+    namespace cocos {
+		using namespace cocos2d;
+		using namespace sdk::cocos;
+    }
+
+#define ps(...) str::pathToString(__VA_ARGS__)
+
+    auto CCFileRB(fs::path const& from) {
+        unsigned long fileSize = 0;
+        unsigned char* fileData = sdk::CCFileUtils::sharedFileUtils()->getFileData(ps(from).c_str(), "rb", &fileSize);
+        if (!fileData) return sdk::ByteVector();
+        sdk::ByteVector fileBytes(fileData, fileData + fileSize);
+        CC_SAFE_DELETE_ARRAY(fileData);
+        return fileBytes;
+    }
+
+    void fileWriteB(fs::path const& to, geode::ByteVector const& fileBytes) {
+        if (to.empty() || fileBytes.empty()) return;
+
+        std::error_code ec;
+
+        auto parent = to.parent_path();
+        if (!parent.empty()) fs::create_directories(parent, ec);
+
+        std::ofstream file;
+        file.exceptions(std::ofstream::goodbit);
+        file.open(to, std::ios::binary | std::ios::out | std::ios::trunc);
+
+        if (!file.is_open() || !file.good()) return;
+
+        if (!fileBytes.empty()) file.write(
+            reinterpret_cast<const char*>(fileBytes.data()),
+            static_cast<std::streamsize>(fileBytes.size())
+        );
+
+        if (file.good()) file.flush();
+    };
+
+    auto Err(auto str) {
+		log::error("{}", str);
+        return sdk::Err(str);
+    }
+
+    auto jsonFromLevel(sdk::Ref<GJGameLevel> level) {
         if (!level) level = GJGameLevel::create();
-if (!level) {log::error("jsnfrlvl lvl is {}", level.data()); return "lvl was nil ptr";};
-        auto json = matjson::Value();
+        auto json = json::Value::object();
         json.set("levelID", level->m_levelID.value()); //["levelID"] = level->m_levelID.value();
-        json.set("levelName", std::string(level->m_levelName.c_str())); //["levelName"] = std::string(level->m_levelName.c_str());
-        json.set("levelDesc", std::string(level->m_levelDesc.c_str())); //["levelDesc"] = std::string(level->m_levelDesc.c_str());
+        json.set("levelName", std::string_view(level->m_levelName.c_str())); //["levelName"] = std::string_view(level->m_levelName.c_str());
+        json.set("levelDesc", std::string_view(level->m_levelDesc.c_str())); //["levelDesc"] = std::string_view(level->m_levelDesc.c_str());
         //json["levelString"] = level->m_levelString.c_str(); moved to end
-        json.set("creatorName", std::string(level->m_creatorName.c_str())); //["creatorName"] = std::string(level->m_creatorName.c_str());
-        json.set("recordString", std::string(level->m_recordString.c_str())); //["recordString"] = std::string(level->m_recordString.c_str());
-        json.set("uploadDate", std::string(level->m_uploadDate.c_str())); //["uploadDate"] = std::string(level->m_uploadDate.c_str());
-        json.set("updateDate", std::string(level->m_updateDate.c_str())); //["updateDate"] = std::string(level->m_updateDate.c_str());
-        json.set("lockedEditorLayers", std::string(level->m_lockedEditorLayers.c_str())); //["lockedEditorLayers"] = std::string(level->m_lockedEditorLayers.c_str());
-        json.set("savedCameraPositions", std::string(level->m_savedCameraPositions.c_str())); //["savedCameraPositions"] = std::string(level->m_savedCameraPositions.c_str());
-        { // CCPoint m_previewLock
-            matjson::Value pt;
+        json.set("creatorName", std::string_view(level->m_creatorName.c_str())); //["creatorName"] = std::string_view(level->m_creatorName.c_str());
+        json.set("recordString", std::string_view(level->m_recordString.c_str())); //["recordString"] = std::string_view(level->m_recordString.c_str());
+        json.set("uploadDate", std::string_view(level->m_uploadDate.c_str())); //["uploadDate"] = std::string_view(level->m_uploadDate.c_str());
+        json.set("updateDate", std::string_view(level->m_updateDate.c_str())); //["updateDate"] = std::string_view(level->m_updateDate.c_str());
+        json.set("lockedEditorLayers", std::string_view(level->m_lockedEditorLayers.c_str())); //["lockedEditorLayers"] = std::string_view(level->m_lockedEditorLayers.c_str());
+        json.set("savedCameraPositions", std::string_view(level->m_savedCameraPositions.c_str())); //["savedCameraPositions"] = std::string_view(level->m_savedCameraPositions.c_str());
+        { // cocos::CCPoint m_previewLock
+            json::Value pt;
             pt.set("x", level->m_previewLock.x); //["x"] = level->m_previewLock.x;
             pt.set("y", level->m_previewLock.y); //["y"] = level->m_previewLock.y;
             json.set("previewLock", pt); //["previewLock"] = pt;
@@ -96,13 +148,13 @@ if (!level) {log::error("jsnfrlvl lvl is {}", level.data()); return "lvl was nil
         json.set("demonVotes", level->m_demonVotes); //"["demonVotes"] = level->m_demonVotes;
         json.set("rateStars", level->m_rateStars); //"["rateStars"] = level->m_rateStars;
         json.set("rateFeature", level->m_rateFeature); //"["rateFeature"] = level->m_rateFeature;
-        json.set("rateUser", std::string(level->m_rateUser.c_str())); //"["rateUser"] = std::string(level->m_rateUser.c_str());
+        json.set("rateUser", std::string_view(level->m_rateUser.c_str())); //"["rateUser"] = std::string_view(level->m_rateUser.c_str());
         json.set("dontSave", level->m_dontSave); //"["dontSave"] = level->m_dontSave;
         json.set("levelNotDownloaded", level->m_levelNotDownloaded); //"["levelNotDownloaded"] = level->m_levelNotDownloaded;
         json.set("requiredCoins", level->m_requiredCoins); //"["requiredCoins"] = level->m_requiredCoins;
         json.set("isUnlocked", level->m_isUnlocked); //"["isUnlocked"] = level->m_isUnlocked;
-        { // CCPoint m_lastCameraPos
-            matjson::Value pt;
+        { // cocos::CCPoint m_lastCameraPos
+            json::Value pt;
             pt.set("x", level->m_lastCameraPos.x); //"["x"] = level->m_lastCameraPos.x;
             pt.set("y", level->m_lastCameraPos.y); //"["y"] = level->m_lastCameraPos.y;
             json.set("lastCameraPos", pt); //["lastCameraPos"] = pt;
@@ -113,33 +165,33 @@ if (!level) {log::error("jsnfrlvl lvl is {}", level.data()); return "lvl was nil
         json.set("lastBuildGroupID", level->m_lastBuildGroupID); //["lastBuildGroupID"] = level->m_lastBuildGroupID;
         json.set("levelType", static_cast<int>(level->m_levelType)); //["levelType"] = static_cast<int>(level->m_levelType);
         json.set("M_ID", level->m_M_ID); //["M_ID"] = level->m_M_ID;
-        json.set("tempName", std::string(level->m_tempName.c_str())); //["tempName"] = std::string(level->m_tempName.c_str());
-        json.set("capacityString", std::string(level->m_capacityString.c_str())); //["capacityString"] = std::string(level->m_capacityString.c_str());
+        json.set("tempName", std::string_view(level->m_tempName.c_str())); //["tempName"] = std::string_view(level->m_tempName.c_str());
+        json.set("capacityString", std::string_view(level->m_capacityString.c_str())); //["capacityString"] = std::string_view(level->m_capacityString.c_str());
         json.set("highObjectsEnabled", level->m_highObjectsEnabled); //["highObjectsEnabled"] = level->m_highObjectsEnabled;
         json.set("unlimitedObjectsEnabled", level->m_unlimitedObjectsEnabled); //["unlimitedObjectsEnabled"] = level->m_unlimitedObjectsEnabled;
-        json.set("personalBests", std::string(level->m_personalBests.c_str())); //["personalBests"] = std::string(level->m_personalBests.c_str());
+        json.set("personalBests", std::string_view(level->m_personalBests.c_str())); //["personalBests"] = std::string_view(level->m_personalBests.c_str());
         json.set("timestamp", level->m_timestamp); //["timestamp"] = level->m_timestamp;
         json.set("listPosition", level->m_listPosition); //["listPosition"] = level->m_listPosition;
-        json.set("songIDs", std::string(level->m_songIDs.c_str())); //["songIDs"] = std::string(level->m_songIDs.c_str());
-        json.set("sfxIDs", std::string(level->m_sfxIDs.c_str())); //["sfxIDs"] = std::string(level->m_sfxIDs.c_str());"sfxIDs"] = std::string(level->m_sfxIDs.c_str());
+        json.set("songIDs", std::string_view(level->m_songIDs.c_str())); //["songIDs"] = std::string_view(level->m_songIDs.c_str());
+        json.set("sfxIDs", std::string_view(level->m_sfxIDs.c_str())); //["sfxIDs"] = std::string_view(level->m_sfxIDs.c_str());"sfxIDs"] = std::string_view(level->m_sfxIDs.c_str());
         json.set("field_54", level->m_54); //["field_54"] = level->m_54;
         json.set("bestTime", level->m_bestTime); //["bestTime"] = level->m_bestTime;
         json.set("bestPoints", level->m_bestPoints); //["bestPoints"] = level->m_bestPoints;
         json.set("platformerSeed", level->m_platformerSeed); //["platformerSeed"] = level->m_platformerSeed;
-        json.set("localBestTimes", std::string(level->m_localBestTimes.c_str())); //["localBestTimes"] = std::string(level->m_localBestTimes.c_str());
-        json.set("localBestPoints", std::string(level->m_localBestPoints.c_str())); //["localBestPoints"] = std::string(level->m_localBestPoints.c_str());
+        json.set("localBestTimes", std::string_view(level->m_localBestTimes.c_str())); //["localBestTimes"] = std::string_view(level->m_localBestTimes.c_str());
+        json.set("localBestPoints", std::string_view(level->m_localBestPoints.c_str())); //["localBestPoints"] = std::string_view(level->m_localBestPoints.c_str());
 
-        json.set("levelString", std::string(level->m_levelString.c_str())); //["levelString"] = std::string(level->m_levelString.c_str());
+        json.set("levelString", std::string_view(level->m_levelString.c_str())); //["levelString"] = std::string_view(level->m_levelString.c_str());
 
         return json;
     }
 
-    void updateLevelByJson(const matjson::Value& json, Ref<GJGameLevel> level) {
-if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data()); 
+    void updateLevelByJson(const json::Value& json, sdk::Ref<GJGameLevel> level) {
+if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
         //log::debug("{} update by json: {}", level, json.dump());
 #define asInt(member, ...) level->m_##member = __VA_ARGS__(json.get(#member"").unwrapOr(static_cast<int>(level->m_##member)).asInt().unwrapOr(static_cast<int>(level->m_##member)));
 #define asSeed(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member.value()).as<int>().unwrapOr(level->m_##member.value());
-#define asString(member) level->m_##member = json.get(#member"").unwrapOr(std::string(level->m_##member.c_str())).asString().unwrapOr(std::string(level->m_##member.c_str())).c_str();
+#define asString(member) level->m_##member = json.get(#member"").unwrapOr(std::string_view(level->m_##member.c_str())).asString().unwrapOr(std::string_view(level->m_##member.c_str()).data()).c_str();
 #define asDouble(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member).asDouble().unwrapOr(level->m_##member);
 #define asBool(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member).asBool().unwrapOr(level->m_##member);
 
@@ -153,8 +205,8 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
         asString(updateDate);// = json["updateDate"].asString().unwrapOr().c_str();
         asString(lockedEditorLayers);// = json["lockedEditorLayers"].asString().unwrapOr().c_str();
         asString(savedCameraPositions);// = json["savedCameraPositions"].asString().unwrapOr().c_str();
-        { // CCPoint m_previewLock
-            matjson::Value pt = json["previewLock"];
+        { // cocos::CCPoint m_previewLock
+            json::Value pt = json["previewLock"];
             asDouble(previewLock.x);// = pt["x"].asDouble().unwrapOr();
             asDouble(previewLock.y);// = pt["y"].asDouble().unwrapOr();
         }
@@ -234,8 +286,8 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
         asBool(levelNotDownloaded);// = json["levelNotDownloaded"].asBool().unwrapOr();
         asInt(requiredCoins);// = json["requiredCoins"].asInt().unwrapOr();
         asBool(isUnlocked);// = json["isUnlocked"].asBool().unwrapOr();
-        { // CCPoint m_lastCameraPos
-            matjson::Value pt = json["lastCameraPos"];
+        { // cocos::CCPoint m_lastCameraPos
+            json::Value pt = json["lastCameraPos"];
             asDouble(lastCameraPos.x);// = pt["x"].asDouble().unwrapOr();
             asDouble(lastCameraPos.y);// = pt["y"].asDouble().unwrapOr();
         }
@@ -268,162 +320,161 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
 #undef asBool //(member) level->m_##member = json[#member""].asBool().unwrapOr(level->m_##member);
     }
 
-    geode::Result<matjson::Value> exportLevelFile(
-        Ref<GJGameLevel> level,
-        std::filesystem::path const& to
+    sdk::Result<json::Value> exportLevelFile(
+        sdk::Ref<GJGameLevel> level,
+        fs::path const& to
     ) {
-        log::error("{}", __FUNCTION__);
-        if (!level) return Err("level ptr is null.");
-        if (!typeinfo_cast<GJGameLevel*>(level.data())) return Err("level ptr is not GJGameLevel typed in RTTI.");
+        if (!level) return Err(
+            "The level ptr is null."
+        );
+        if (!sdk::typeinfo_cast<GJGameLevel*>(level.data())) return Err(
+            "The level ptr is not GJGameLevel typed in RTTI."
+        );
 
-        log::error("{}", __LINE__);
         auto ignored_error = std::error_code();
-        std::filesystem::create_directories(to.parent_path(), ignored_error);
-        std::filesystem::remove(to, ignored_error);
+        fs::create_directories(to.parent_path(), ignored_error);
+        fs::remove(to, ignored_error);
 
-        log::error("{}", __LINE__);
-        GEODE_UNWRAP_INTO(auto file, file::Zip::create(to));
+        auto res290 = fs::Zip::create(to);
+        if (!res290.isOk()) {
+            return Err(
+                "Zipper: " + std::move(res290).err().value_or("unknown error")
+            );
+        }
+        auto file = std::move(res290).unwrap();
 
-        log::error("{}", __LINE__);
-        auto json = jsonFromLevel(level);
-        GEODE_UNWRAP(file.add("_data.json", json.dump()));
+        // makin data dump like that can save you from matjson errors related to random memory
+        auto lvlJSON = jsonFromLevel(level);
+        auto data = std::stringstream() << "{\n";
+        for (auto& [k, v] : lvlJSON) {
+            data << "\t\"" << k << "\": " << json::parse(v.dump()).unwrapOr(
+                "invalid value (dump failed)"
+            ).dump() << ",\n";
+        }
+        data << "\t" R"("end": "here is")" "\n";
+        data << "}";
 
-        log::error("{}", __LINE__);
+        if (auto err = file.add("_data.json", data.str()).err()) {
+			return Err(
+                "Add _data.json: " + err.value_or("unknown error")
+            );
+        };
+
         //primary song id isnt 0
         if (level->m_songID) {
             //path
-            std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(
+            fs::path path = MusicDownloadManager::sharedState()->pathForSong(
                 level->m_songID
             ).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (fileExistsInSearchPaths(ps(path).c_str())) {
-                GEODE_UNWRAP(file.add(
-                    std::filesystem::path(path).filename()
-                    , file::readBinary(path).unwrapOrDefault()
-                ));
+            if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
+                if (auto err = file.add(fs::path(path).filename(), CCFileRB(path)).err()) Err(
+                    err.value_or("unknown error")
+                );
             }
         }
-        log::error("{}", __LINE__);
 
         //fe the ids from list
-        for (auto id : string::split(level->m_songIDs, ",")) {
+        for (auto id : str::split(level->m_songIDs, ",")) {
             //path
-            std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(
+            fs::path path = MusicDownloadManager::sharedState()->pathForSong(
                 utils::numFromString<int>(id).unwrapOrDefault()
             ).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (fileExistsInSearchPaths(ps(path).c_str())) {
-                GEODE_UNWRAP(file.add(
-                    std::filesystem::path(path).filename()
-                    , file::readBinary(path).unwrapOrDefault()
-                ));
+            if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
+                if (auto err = file.add(fs::path(path).filename(), CCFileRB(path)).err()) Err(
+                    err.value_or("unknown error")
+                );
             };
         }
-        log::error("{}", __LINE__);
 
         //fe the ids from list
-        for (auto id : string::split(level->m_sfxIDs, ",")) {
+        for (auto id : str::split(level->m_sfxIDs, ",")) {
             //path
-            std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSFX(
+            fs::path path = MusicDownloadManager::sharedState()->pathForSFX(
                 utils::numFromString<int>(id).unwrapOrDefault()
             ).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (fileExistsInSearchPaths(ps(path).c_str())) {
-                GEODE_UNWRAP(file.add(
-                    std::filesystem::path(path).filename()
-                    , file::readBinary(path).unwrapOrDefault()
-                ));
+            if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
+                if (auto err = file.add(fs::path(path).filename(), CCFileRB(path)).err()) Err(
+                    err.value_or("unknown error")
+                );
             }
         }
-        log::error("{}", __LINE__);
 
-        return Ok(json);
+        return sdk::Ok(std::move(lvlJSON));
     };
 
-    geode::Result<GJGameLevel*> importLevelFile(
-        std::filesystem::path const& from,
-        Ref<GJGameLevel> level = GJGameLevel::create()
+    sdk::Result<GJGameLevel*> importLevelFile(
+        fs::path const& from,
+        sdk::Ref<GJGameLevel> level = GJGameLevel::create()
     ) {
-log::error("{}", __FUNCTION__);
-        if (!level) return Err("level ptr is null.");
-        if (!typeinfo_cast<GJGameLevel*>(level.data())) return Err("level ptr is not GJGameLevel typed in RTTI.");
-log::error("{}", __LINE__);
+        if (!level) return Err(
+            "level ptr is null."
+        );
+        if (!sdk::typeinfo_cast<GJGameLevel*>(level.data())) return Err(
+            "level ptr is not GJGameLevel typed in RTTI."
+        );
 
-unsigned long fileSize = 0;
-unsigned char* fileData = CCFileUtils::sharedFileUtils()->getFileData(ps(from).c_str(), "rb", &fileSize);
-if (!fileData) return Err("can't read file");
-std::vector<uint8_t> fileBytes(fileData, fileData + fileSize);
-delete[] fileData;
-log::error("{}", __LINE__);
-GEODE_UNWRAP_INTO(auto file, file::Unzip::create(fileBytes));
+        auto res400 = fs::Unzip::create(CCFileRB(from));
+        if (!res400.isOk()) return geode::Err(
+            std::move(res400).unwrapErr()
+        ); 
+        auto file = std::move(res400).unwrap();
 
-log::error("{}", __LINE__);
-        GEODE_UNWRAP_INTO(auto __data_read, file.extract("_data.json"));
-log::error("{}", __LINE__);
-        auto data = matjson::parse(std::string(__data_read.begin(), __data_read.end())).unwrapOrDefault();
-        log::error("{}", __LINE__);
-
-        if (!level) return Err("level ptr is null.");
-        if (!typeinfo_cast<GJGameLevel*>(level.data())) return Err("level ptr is not GJGameLevel typed in RTTI.");
+        auto dump = file.extract("_data.json").unwrapOrDefault();
+        auto data = json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault();
 
         if (level) updateLevelByJson(data, level);
-        log::error("{}", __LINE__);
-
-        log::debug("data from zip: {}", data.dump());
 
         //primary song id isnt 0
-        log::error("{}", __LINE__);
         if (level->m_songID) {
             //path
-            std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(level->m_songID).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-        log::error("{}", __LINE__);
+            fs::path path = MusicDownloadManager::sharedState()->pathForSong(level->m_songID).c_str();
+            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {
-        log::error("{}", __LINE__);
-                auto atzip = ps(std::filesystem::path(path).filename());        log::error("{}", __LINE__);
-                GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));        log::error("{}", __LINE__);
-                GEODE_UNWRAP(file::writeBinary(path, __data_read));        log::error("{}", __LINE__);
+            if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                auto atzip = ps(fs::path(path).filename());
+                fileWriteB(path, file.extract(atzip).unwrapOrDefault());
             };
         }
-        log::error("{}", __LINE__);
-        for (auto id : string::split(level->m_songIDs, ",")) {
+
+        for (auto id : str::split(level->m_songIDs, ",")) {
             //path
-            std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(
+            fs::path path = MusicDownloadManager::sharedState()->pathForSong(
                 utils::numFromString<int>(id).unwrapOrDefault()
-            ).c_str();        log::error("{}", __LINE__);
-            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+            ).c_str();
+            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {        log::error("{}", __LINE__);
-                auto atzip = ps(std::filesystem::path(path).filename());        log::error("{}", __LINE__);
-                GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));        log::error("{}", __LINE__);
-                GEODE_UNWRAP(file::writeBinary(path, __data_read));        log::error("{}", __LINE__);
+            if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                auto atzip = ps(fs::path(path).filename());
+                fileWriteB(path, file.extract(atzip).unwrapOrDefault());
             }
         }
-        log::error("{}", __LINE__);
-        for (auto id : string::split(level->m_sfxIDs, ",")) {
+
+        for (auto id : str::split(level->m_sfxIDs, ",")) {
             //path
-            std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSFX(
+            fs::path path = MusicDownloadManager::sharedState()->pathForSFX(
                 utils::numFromString<int>(id).unwrapOrDefault()
-            ).c_str();        log::error("{}", __LINE__);
-            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+            ).c_str();
+            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {        log::error("{}", __LINE__);
-                auto atzip = ps(std::filesystem::path(path).filename());        log::error("{}", __LINE__);
-                GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));
-                       log::error("{}", __LINE__); GEODE_UNWRAP(file::writeBinary(path, __data_read));        log::error("{}", __LINE__);
+            if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                auto atzip = ps(fs::path(path).filename());
+                fileWriteB(path, file.extract(atzip).unwrapOrDefault());
             }
         }
-        log::error("{}", __LINE__);
-        auto xd = CCNode::create();
-        if (xd) xd->setID(ps(from)); 
-               log::error("{}", __LINE__); xd->setTag(hash("is-imported-from-file"));
-        if (level and xd) level->addChild(xd);        log::error("{}", __LINE__);
-        log::error("{}", __LINE__);
-        return Ok(level.data());
+
+        if (auto xd = cocos::CCNode::create()) {
+            xd->setTag(sdk::hash("is-imported-from-file"));
+            xd->setID(ps(from));
+            if (level) level->addChild(xd);
+        }
+
+        return sdk::Ok(level.data());
     };
 
 }

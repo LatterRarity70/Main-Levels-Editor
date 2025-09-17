@@ -3,8 +3,7 @@
 // the custom shared level format ".level" like ".gmd2", saves audio and almost ALL level data.
 // created by because of the limitations of ".gmd" format, made same way as that one
 namespace level {
-
-    using namespace geode::prelude; //lol
+#define ps(...) string::pathToString(__VA_ARGS__)
 
     matjson::Value jsonFromLevel(GJGameLevel* level) {
         level = level ? level : GJGameLevel::create();
@@ -271,33 +270,39 @@ namespace level {
         GJGameLevel* level,
         std::filesystem::path const& to
     ) {
+        log::error("{}", __FUNCTION__);
         if (!level) return Err("level ptr is null.");
         if (!typeinfo_cast<GJGameLevel*>(level)) return Err("level ptr is not GJGameLevel typed in RTTI.");
 
+        log::error("{}", __LINE__);
         auto ignored_error = std::error_code();
         std::filesystem::create_directories(to.parent_path(), ignored_error);
         std::filesystem::remove(to, ignored_error);
 
-        GEODE_UNWRAP_INTO(auto file, file::Zip::create(to.string()));
+        log::error("{}", __LINE__);
+        GEODE_UNWRAP_INTO(auto file, file::Zip::create(to));
 
+        log::error("{}", __LINE__);
         auto json = jsonFromLevel(level);
         GEODE_UNWRAP(file.add("_data.json", json.dump()));
 
+        log::error("{}", __LINE__);
         //primary song id isnt 0
         if (level->m_songID) {
             //path
             std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(
                 level->m_songID
             ).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(path.string().c_str(), 0).c_str();
+            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (fileExistsInSearchPaths(path.string().c_str())) {
+            if (fileExistsInSearchPaths(ps(path).c_str())) {
                 GEODE_UNWRAP(file.add(
-                    std::filesystem::path(path).filename().string()
+                    std::filesystem::path(path).filename()
                     , file::readBinary(path).unwrapOrDefault()
                 ));
             }
         }
+        log::error("{}", __LINE__);
 
         //fe the ids from list
         for (auto id : string::split(level->m_songIDs, ",")) {
@@ -305,15 +310,16 @@ namespace level {
             std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(
                 utils::numFromString<int>(id).unwrapOrDefault()
             ).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(path.string().c_str(), 0).c_str();
+            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (fileExistsInSearchPaths(path.string().c_str())) {
+            if (fileExistsInSearchPaths(ps(path).c_str())) {
                 GEODE_UNWRAP(file.add(
-                    std::filesystem::path(path).filename().string()
+                    std::filesystem::path(path).filename()
                     , file::readBinary(path).unwrapOrDefault()
                 ));
             };
         }
+        log::error("{}", __LINE__);
 
         //fe the ids from list
         for (auto id : string::split(level->m_sfxIDs, ",")) {
@@ -321,15 +327,16 @@ namespace level {
             std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSFX(
                 utils::numFromString<int>(id).unwrapOrDefault()
             ).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(path.string().c_str(), 0).c_str();
+            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (fileExistsInSearchPaths(path.string().c_str())) {
+            if (fileExistsInSearchPaths(ps(path).c_str())) {
                 GEODE_UNWRAP(file.add(
-                    std::filesystem::path(path).filename().string()
+                    std::filesystem::path(path).filename()
                     , file::readBinary(path).unwrapOrDefault()
                 ));
             }
         }
+        log::error("{}", __LINE__);
 
         return Ok(json);
     };
@@ -341,7 +348,7 @@ namespace level {
         if (!level) return Err("level ptr is null.");
         if (!typeinfo_cast<GJGameLevel*>(level)) return Err("level ptr is not GJGameLevel typed in RTTI.");
 
-        GEODE_UNWRAP_INTO(auto file, file::Unzip::create(from.string()));
+        GEODE_UNWRAP_INTO(auto file, file::Unzip::create(from));
 
         GEODE_UNWRAP_INTO(auto __data_read, file.extract("_data.json"));
         GEODE_UNWRAP_INTO(auto data, matjson::parse(std::string(__data_read.begin(), __data_read.end())));
@@ -353,10 +360,10 @@ namespace level {
         if (level->m_songID) {
             //path
             std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(level->m_songID).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(string::pathToString(path).c_str(), 0).c_str();
+            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (CCFileUtils::get()->isFileExist(string::pathToString(path).c_str())) {
-                auto atzip = string::pathToString(std::filesystem::path(path).filename());
+            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                auto atzip = ps(std::filesystem::path(path).filename());
                 GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));
                 GEODE_UNWRAP(file::writeBinary(path, __data_read));
             };
@@ -367,10 +374,10 @@ namespace level {
             std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(
                 utils::numFromString<int>(id).unwrapOrDefault()
             ).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(string::pathToString(path).c_str(), 0).c_str();
+            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (CCFileUtils::get()->isFileExist(string::pathToString(path).c_str())) {
-                auto atzip = string::pathToString(std::filesystem::path(path).filename());
+            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                auto atzip = ps(std::filesystem::path(path).filename());
                 GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));
                 GEODE_UNWRAP(file::writeBinary(path, __data_read));
             }
@@ -381,18 +388,18 @@ namespace level {
             std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSFX(
                 utils::numFromString<int>(id).unwrapOrDefault()
             ).c_str();
-            path = CCFileUtils::get()->fullPathForFilename(string::pathToString(path).c_str(), 0).c_str();
+            path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (CCFileUtils::get()->isFileExist(string::pathToString(path).c_str())) {
-                auto atzip = string::pathToString(std::filesystem::path(path).filename());
+            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                auto atzip = ps(std::filesystem::path(path).filename());
                 GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));
                 GEODE_UNWRAP(file::writeBinary(path, __data_read));
             }
         }
 
         auto xd = CCNode::create();
-        xd->setID(string::pathToString(from));
-        xd->setTag("is-imported-from-file"_h);
+        xd->setID(ps(from)); 
+        xd->setTag(hash("is-imported-from-file"));
         level->addChild(xd);
 
         return Ok(level);

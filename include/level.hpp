@@ -345,63 +345,70 @@ namespace level {
         std::filesystem::path const& from,
         GJGameLevel* level = GJGameLevel::create()
     ) {
+log::error("{}", __FUNCTION__);
         if (!level) return Err("level ptr is null.");
         if (!typeinfo_cast<GJGameLevel*>(level)) return Err("level ptr is not GJGameLevel typed in RTTI.");
-
+log::error("{}", __LINE__);
         GEODE_UNWRAP_INTO(auto file, file::Unzip::create(from));
-
+log::error("{}", __LINE__);
         GEODE_UNWRAP_INTO(auto __data_read, file.extract("_data.json"));
+log::error("{}", __LINE__);
         GEODE_UNWRAP_INTO(auto data, matjson::parse(std::string(__data_read.begin(), __data_read.end())));
+        log::error("{}", __LINE__);
         updateLevelByJson(data, level);
+        log::error("{}", __LINE__);
 
-        //log::debug("data from zip: {}", data.dump());
+        log::debug("data from zip: {}", data.dump());
 
         //primary song id isnt 0
+        log::error("{}", __LINE__);
         if (level->m_songID) {
             //path
             std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(level->m_songID).c_str();
             path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+        log::error("{}", __LINE__);
             //add if exists
             if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {
-                auto atzip = ps(std::filesystem::path(path).filename());
-                GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));
-                GEODE_UNWRAP(file::writeBinary(path, __data_read));
+        log::error("{}", __LINE__);
+                auto atzip = ps(std::filesystem::path(path).filename());        log::error("{}", __LINE__);
+                GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));        log::error("{}", __LINE__);
+                GEODE_UNWRAP(file::writeBinary(path, __data_read));        log::error("{}", __LINE__);
             };
         }
-
+        log::error("{}", __LINE__);
         for (auto id : string::split(level->m_songIDs, ",")) {
             //path
             std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSong(
                 utils::numFromString<int>(id).unwrapOrDefault()
-            ).c_str();
+            ).c_str();        log::error("{}", __LINE__);
             path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {
-                auto atzip = ps(std::filesystem::path(path).filename());
-                GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));
-                GEODE_UNWRAP(file::writeBinary(path, __data_read));
+            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {        log::error("{}", __LINE__);
+                auto atzip = ps(std::filesystem::path(path).filename());        log::error("{}", __LINE__);
+                GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));        log::error("{}", __LINE__);
+                GEODE_UNWRAP(file::writeBinary(path, __data_read));        log::error("{}", __LINE__);
             }
         }
-
+        log::error("{}", __LINE__);
         for (auto id : string::split(level->m_sfxIDs, ",")) {
             //path
             std::filesystem::path path = MusicDownloadManager::sharedState()->pathForSFX(
                 utils::numFromString<int>(id).unwrapOrDefault()
-            ).c_str();
+            ).c_str();        log::error("{}", __LINE__);
             path = CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
             //add if exists
-            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {
-                auto atzip = ps(std::filesystem::path(path).filename());
+            if (CCFileUtils::get()->isFileExist(ps(path).c_str())) {        log::error("{}", __LINE__);
+                auto atzip = ps(std::filesystem::path(path).filename());        log::error("{}", __LINE__);
                 GEODE_UNWRAP_INTO(auto __data_read, file.extract(atzip));
-                GEODE_UNWRAP(file::writeBinary(path, __data_read));
+                       log::error("{}", __LINE__); GEODE_UNWRAP(file::writeBinary(path, __data_read));        log::error("{}", __LINE__);
             }
         }
-
+        log::error("{}", __LINE__);
         auto xd = CCNode::create();
-        xd->setID(ps(from)); 
-        xd->setTag(hash("is-imported-from-file"));
-        level->addChild(xd);
-
+        if (xd) xd->setID(ps(from)); 
+               log::error("{}", __LINE__); xd->setTag(hash("is-imported-from-file"));
+        if (level and xd) level->addChild(xd);        log::error("{}", __LINE__);
+        log::error("{}", __LINE__);
         return Ok(level);
     };
 

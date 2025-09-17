@@ -269,12 +269,12 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
     }
 
     geode::Result<matjson::Value> exportLevelFile(
-        GJGameLevel* level,
+        Ref<GJGameLevel> level,
         std::filesystem::path const& to
     ) {
         log::error("{}", __FUNCTION__);
         if (!level) return Err("level ptr is null.");
-        if (!typeinfo_cast<GJGameLevel*>(level)) return Err("level ptr is not GJGameLevel typed in RTTI.");
+        if (!typeinfo_cast<GJGameLevel*>(level.data())) return Err("level ptr is not GJGameLevel typed in RTTI.");
 
         log::error("{}", __LINE__);
         auto ignored_error = std::error_code();
@@ -365,6 +365,10 @@ log::error("{}", __LINE__);
 log::error("{}", __LINE__);
         auto data = matjson::parse(std::string(__data_read.begin(), __data_read.end())).unwrapOrDefault();
         log::error("{}", __LINE__);
+
+        if (!level) return Err("level ptr is null.");
+        if (!typeinfo_cast<GJGameLevel*>(level.data())) return Err("level ptr is not GJGameLevel typed in RTTI.");
+
         if (level) updateLevelByJson(data, level);
         log::error("{}", __LINE__);
 
@@ -419,7 +423,7 @@ log::error("{}", __LINE__);
                log::error("{}", __LINE__); xd->setTag(hash("is-imported-from-file"));
         if (level and xd) level->addChild(xd);        log::error("{}", __LINE__);
         log::error("{}", __LINE__);
-        return Ok(level);
+        return Ok(level.data());
     };
 
 }

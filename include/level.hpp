@@ -261,11 +261,11 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
         asString(localBestTimes);// = json["localBestTimes"].asString().unwrapOr().c_str();
         asString(localBestPoints);// = json["localBestPoints"].asString().unwrapOr().c_str();
 
-#undef asInt//(member, ...) level->m_##member = __VA_ARGS__(json[#member""].asInt().unwrapOr(static_cast<int>(level->m_##member)));
-#undef asSeed//(member) level->m_##member = json[#member""].as<int>().unwrapOr(level->m_##member.value());
-#undef asString//(member) level->m_##member = json[#member""].asString().unwrapOr(level->m_##member.c_str()).c_str();
-#undef asDouble//(member) level->m_##member = json[#member""].asDouble().unwrapOr(level->m_##member);
-#undef asBool//(member) level->m_##member = json[#member""].asBool().unwrapOr(level->m_##member);
+#undef asInt //(member, ...) level->m_##member = __VA_ARGS__(json[#member""].asInt().unwrapOr(static_cast<int>(level->m_##member)));
+#undef asSeed //(member) level->m_##member = json[#member""].as<int>().unwrapOr(level->m_##member.value());
+#undef asString //(member) level->m_##member = json[#member""].asString().unwrapOr(level->m_##member.c_str()).c_str();
+#undef asDouble //(member) level->m_##member = json[#member""].asDouble().unwrapOr(level->m_##member);
+#undef asBool //(member) level->m_##member = json[#member""].asBool().unwrapOr(level->m_##member);
     }
 
     geode::Result<matjson::Value> exportLevelFile(
@@ -345,11 +345,11 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
 
     geode::Result<GJGameLevel*> importLevelFile(
         std::filesystem::path const& from,
-        GJGameLevel* level = GJGameLevel::create()
+        Ref<GJGameLevel> level = GJGameLevel::create()
     ) {
 log::error("{}", __FUNCTION__);
         if (!level) return Err("level ptr is null.");
-        if (!typeinfo_cast<GJGameLevel*>(level)) return Err("level ptr is not GJGameLevel typed in RTTI.");
+        if (!typeinfo_cast<GJGameLevel*>(level.data())) return Err("level ptr is not GJGameLevel typed in RTTI.");
 log::error("{}", __LINE__);
 
 unsigned long fileSize = 0;
@@ -365,7 +365,7 @@ log::error("{}", __LINE__);
 log::error("{}", __LINE__);
         auto data = matjson::parse(std::string(__data_read.begin(), __data_read.end())).unwrapOrDefault();
         log::error("{}", __LINE__);
-        updateLevelByJson(data, level);
+        if (level) updateLevelByJson(data, level);
         log::error("{}", __LINE__);
 
         log::debug("data from zip: {}", data.dump());

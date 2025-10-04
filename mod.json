@@ -1,5 +1,5 @@
 {
-	"geode": "4.8.0",
+	"geode": "4.9.0",
 	"early-load": true,
 	"gd": {
 		"win": "2.2074",
@@ -8,7 +8,7 @@
 		"ios": "2.2074"
 	},
 
-	"version": "v8.0.0-beta.13",
+	"version": "v8.0.0-beta.14",
 	"id": "user95401.main-levels-editor",
 	"name": "Main Levels Editor",
 	"developers": [ "LatterRarity70" ],
@@ -16,8 +16,8 @@
 
 	"links": {
 		"community": "https://discord.gg/6SxAbk3bTA",
-		"homepage": "https://t.me/user95401_channel",
-		"source": "https://github.com/user95401/Main-Levels-Editor"
+		"homepage": "https://t.me/LatterRarity70",
+		"source": "https://github.com/LatterRarity70/Main-Levels-Editor"
 	},
 	"tags": [ "gameplay", "music", "interface", "utility", "customization", "cheat" ],
 

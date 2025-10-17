@@ -420,10 +420,12 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
             "level ptr is not GJGameLevel typed in RTTI."
         );
 
+		from = CCFileUtils::get()->fullPath(geode::utils::string::pathToString(from).c_str(), 0);
+
 		log::error("{}", "unzip create");
-        auto res400 = fs::Unzip::create(CCFileRB(from));
+        auto res400 = fs::Unzip::create(from);
         if (!res400.isOk()) return geode::Err(
-            std::move(res400).unwrapErr()
+            std::move(res400).err().value_or("unk err")
         ); 
 		log::error("{}", "uzip res move");
         auto file = std::move(res400).unwrap();

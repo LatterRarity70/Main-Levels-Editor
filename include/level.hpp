@@ -411,26 +411,36 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
         fs::path const& from,
         sdk::Ref<GJGameLevel> level = GJGameLevel::create()
     ) {
+		log::error("{}", "level ptr check");
         if (!level) return Err(
             "level ptr is null."
         );
+		log::error("{}", "ptr type check");
         if (!sdk::typeinfo_cast<GJGameLevel*>(level.data())) return Err(
             "level ptr is not GJGameLevel typed in RTTI."
         );
 
+		log::error("{}", "unzip create");
         auto res400 = fs::Unzip::create(CCFileRB(from));
         if (!res400.isOk()) return geode::Err(
             std::move(res400).unwrapErr()
         ); 
+		log::error("{}", "uzip res move");
         auto file = std::move(res400).unwrap();
 
+		log::error("{}", "dump extract");
         auto dump = file.extract("_data.json").unwrapOrDefault();
+		log::error("{}", "data parse");
         auto data = json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault();
+		log::error("{}", "data parsed");
 
         if (level) updateLevelByJson(data, level);
+		if (!level) return geode::Err("lvl ptr nil");
+		log::error("{}", "level updated");
 
         //primary song id isnt 0
         if (level->m_songID) {
+		log::error("{}", "installing song");
             //path
             fs::path path = MusicDownloadManager::sharedState()->pathForSong(level->m_songID).c_str();
             path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
@@ -440,8 +450,10 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
                 fileWriteB(path, file.extract(atzip).unwrapOrDefault());
             };
         }
+		log::error("{}", "song install passed");
 
         for (auto id : str::split(level->m_songIDs, ",")) {
+		log::error("song {}", id);
             //path
             fs::path path = MusicDownloadManager::sharedState()->pathForSong(
                 utils::numFromString<int>(id).unwrapOrDefault()
@@ -453,8 +465,10 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
                 fileWriteB(path, file.extract(atzip).unwrapOrDefault());
             }
         }
+		log::error("{}", "songs install passed");
 
         for (auto id : str::split(level->m_sfxIDs, ",")) {
+		log::error("sfx {}", id);
             //path
             fs::path path = MusicDownloadManager::sharedState()->pathForSFX(
                 utils::numFromString<int>(id).unwrapOrDefault()
@@ -466,13 +480,16 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
                 fileWriteB(path, file.extract(atzip).unwrapOrDefault());
             }
         }
+		log::error("{}", "sfx install passed");
 
         if (auto xd = cocos::CCNode::create()) {
             xd->setTag(sdk::hash("is-imported-from-file"));
             xd->setID(ps(from));
             if (level) level->addChild(xd);
+		log::error("{}", "import node info added");
         }
 
+		log::error("{}", "import finished");
         return sdk::Ok(level.data());
     };
 

@@ -13,51 +13,44 @@ namespace level {
     namespace fs {
 		using namespace std::filesystem;
 		using namespace sdk::file;
+        auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
+        auto writeb(path const& p, auto data = readb("")) { return readBinary(p).unwrapOrDefault(); }
     }
     namespace cocos {
 		using namespace cocos2d;
 		using namespace sdk::cocos;
     }
-
 #define ps(...) str::pathToString(__VA_ARGS__)
 
-    auto CCFileRB(fs::path const& from) {
-        unsigned long fileSize = 0;
-        unsigned char* fileData = sdk::CCFileUtils::sharedFileUtils()->getFileData(ps(from).c_str(), "rb", &fileSize);
-        if (!fileData) return sdk::ByteVector();
-        sdk::ByteVector fileBytes(fileData, fileData + fileSize);
-        CC_SAFE_DELETE_ARRAY(fileData);
-        return fileBytes;
+    inline auto Err(auto str) {
+		log::error("{}", str);
+        return sdk::Err("{}", str);
     }
 
-    void fileWriteB(fs::path const& to, geode::ByteVector const& fileBytes) {
-        if (to.empty() || fileBytes.empty()) return;
+    // Null if not imported, call getID to get path of .level file
+    // Example: if (auto inf = isImported(level)) { auto path = inf->getID(); }
+    auto isImported(sdk::Ref<GJGameLevel> level, std::string newPath = "") {
+        //log::debug("{}({}, {})", __FUNCTION__, level.data(), json::Value(newPath).dump());
+        //sdk::SceneManager::get()->keepAcrossScenes(level);
+        auto tag = sdk::hash("is-imported-from-file");
 
-        std::error_code ec;
+        if (not newPath.empty()) {
+            if (cocos::fileExistsInSearchPaths(newPath.c_str())) {
+                auto xd = cocos::CCNode::create();
+                xd->setID(newPath);
+                xd->setTag(tag);
+                if (level) {
+                    level->removeChildByTag(tag);
+                    level->addChild(xd);
+                }
+            }
+            else log::error("file '{}' does not exist", newPath);
+        };
 
-        auto parent = to.parent_path();
-        if (!parent.empty()) fs::create_directories(parent, ec);
-
-        std::ofstream file;
-        file.exceptions(std::ofstream::goodbit);
-        file.open(to, std::ios::binary | std::ios::out | std::ios::trunc);
-
-        if (!file.is_open() || !file.good()) return;
-
-        if (!fileBytes.empty()) file.write(
-            reinterpret_cast<const char*>(fileBytes.data()),
-            static_cast<std::streamsize>(fileBytes.size())
-        );
-
-        if (file.good()) file.flush();
+        return !level ? nullptr : level->getChildByTag(tag);
     };
 
-    auto Err(auto str) {
-		log::error("{}", str);
-        return sdk::Err(str);
-    }
-
-    auto jsonFromLevel(sdk::Ref<GJGameLevel> level) {
+    inline auto jsonFromLevel(sdk::Ref<GJGameLevel> level) {
         if (!level) level = GJGameLevel::create();
         auto json = json::Value::object();
         json.set("levelID", level->m_levelID.value()); //["levelID"] = level->m_levelID.value();
@@ -185,8 +178,10 @@ namespace level {
         return json;
     }
 
-    void updateLevelByJson(const json::Value& json, sdk::Ref<GJGameLevel> level) {
-if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
+    inline void updateLevelByJson(const json::Value& json, sdk::Ref<GJGameLevel> level) {
+        if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
+        // for mle, helps store path in level json instead of level object
+        if (json.contains("file")) isImported(level, json["file"].asString().unwrapOr("invalid file value"));
         //log::debug("{} update by json: {}", level, json.dump());
 #define asInt(member, ...) level->m_##member = __VA_ARGS__(json.get(#member"").unwrapOr(static_cast<int>(level->m_##member)).asInt().unwrapOr(static_cast<int>(level->m_##member)));
 #define asSeed(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member.value()).as<int>().unwrapOr(level->m_##member.value());
@@ -319,180 +314,167 @@ if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
 #undef asBool //(member) level->m_##member = json[#member""].asBool().unwrapOr(level->m_##member);
     }
 
-    sdk::Result<json::Value> exportLevelFile(
+    inline sdk::Result<json::Value> exportLevelFile(
         sdk::Ref<GJGameLevel> level,
-        fs::path const& to
+        fs::path to
     ) {
-        if (!level) return Err(
-            "The level ptr is null."
-        );
-        if (!sdk::typeinfo_cast<GJGameLevel*>(level.data())) return Err(
-            "The level ptr is not GJGameLevel typed in RTTI."
-        );
-
-        auto ignored_error = std::error_code();
-        fs::create_directories(to.parent_path(), ignored_error);
-        fs::remove(to, ignored_error);
-
-        auto res290 = fs::Zip::create(to);
-        if (!res290.isOk()) {
-            return Err(
-                "Zipper: " + std::move(res290).err().value_or("unknown error")
+        try {
+            if (!level) return Err(
+                "The level ptr is null."
             );
-        }
-        auto file = std::move(res290).unwrap();
-
-        // makin data dump like that can save you from matjson errors related to random memory
-        auto lvlJSON = jsonFromLevel(level);
-        auto data = std::stringstream() << "{\n";
-        for (auto& [k, v] : lvlJSON) {
-            data << "\t\"" << k << "\": " << json::parse(v.dump()).unwrapOr(
-                "invalid value (dump failed)"
-            ).dump() << ",\n";
-        }
-        data << "\t" R"("end": "here is")" "\n";
-        data << "}";
-
-        if (auto err = file.add("_data.json", data.str()).err()) {
-			return Err(
-                "Add _data.json: " + err.value_or("unknown error")
+            if (!sdk::typeinfo_cast<GJGameLevel*>(level.data())) return Err(
+                "The level ptr is not GJGameLevel typed in RTTI."
             );
-        };
 
-        //primary song id isnt 0
-        if (level->m_songID) {
-            //path
-            fs::path path = MusicDownloadManager::sharedState()->pathForSong(
-                level->m_songID
-            ).c_str();
-            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-            //add if exists
-            if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
-                if (auto err = file.add(fs::path(path).filename(), CCFileRB(path)).err()) Err(
-                    err.value_or("unknown error")
-                );
+            to = sdk::CCFileUtils::get()->fullPathForFilename(ps(to).c_str(), 0).c_str();
+
+            auto ignored_error = std::error_code();
+            fs::create_directories(to.parent_path(), ignored_error);
+            fs::remove(to, ignored_error);
+
+            auto res290 = fs::Zip::create(to);
+            if (!res290.isOk()) return Err(
+                std::move(res290).err().value_or("unknown error")
+            );
+            auto file = std::move(res290).unwrap();
+
+            // makin data dump like that can save you from matjson errors related to random memory
+            auto lvlJSON = jsonFromLevel(level);
+            auto data = std::stringstream() << "{\n";
+            for (auto& [k, v] : lvlJSON) {
+                data << "\t\"" << k << "\": " << json::parse(v.dump()).unwrapOr(
+                    "invalid value (dump failed)"
+                ).dump() << ",\n";
             }
-        }
+            data << "\t" R"("there is": "end!")" "\n";
+            data << "}";
 
-        //fe the ids from list
-        for (auto id : str::split(level->m_songIDs, ",")) {
-            //path
-            fs::path path = MusicDownloadManager::sharedState()->pathForSong(
-                utils::numFromString<int>(id).unwrapOrDefault()
-            ).c_str();
-            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-            //add if exists
-            if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
-                if (auto err = file.add(fs::path(path).filename(), CCFileRB(path)).err()) Err(
-                    err.value_or("unknown error")
-                );
-            };
-        }
+            if (auto err = file.add("_data.json", data.str()).err()) return Err(
+                "_data.json, " + err.value_or("unknown error")
+            );
 
-        //fe the ids from list
-        for (auto id : str::split(level->m_sfxIDs, ",")) {
-            //path
-            fs::path path = MusicDownloadManager::sharedState()->pathForSFX(
-                utils::numFromString<int>(id).unwrapOrDefault()
-            ).c_str();
-            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-            //add if exists
-            if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
-                if (auto err = file.add(fs::path(path).filename(), CCFileRB(path)).err()) Err(
-                    err.value_or("unknown error")
-                );
+            //primary song id isnt 0
+            if (level->m_songID) {
+                //path
+                fs::path path = MusicDownloadManager::sharedState()->pathForSong(
+                    level->m_songID
+                ).c_str();
+                path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+                //add if exists
+                if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
+                    if (auto err = file.add(fs::path(path).filename(), fs::readb(path)).err()) Err(
+                        err.value_or("unknown error")
+                    );
+                }
             }
-        }
 
-        return sdk::Ok(std::move(lvlJSON));
+            //fe the ids from list
+            for (auto id : str::split(level->m_songIDs, ",")) {
+                //path
+                fs::path path = MusicDownloadManager::sharedState()->pathForSong(
+                    utils::numFromString<int>(id).unwrapOrDefault()
+                ).c_str();
+                path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+                //add if exists
+                if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
+                    if (auto err = file.add(fs::path(path).filename(), fs::readb(path)).err()) Err(
+                        err.value_or("unknown error")
+                    );
+                };
+            }
+
+            //fe the ids from list
+            for (auto id : str::split(level->m_sfxIDs, ",")) {
+                //path
+                fs::path path = MusicDownloadManager::sharedState()->pathForSFX(
+                    utils::numFromString<int>(id).unwrapOrDefault()
+                ).c_str();
+                path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+                //add if exists
+                if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
+                    if (auto err = file.add(fs::path(path).filename(), fs::readb(path)).err()) Err(
+                        err.value_or("unknown error")
+                    );
+                }
+            }
+
+            return sdk::Ok(std::move(lvlJSON));
+        }
+        catch (std::exception& e) { // feels like nails plug in my fingers
+            return Err("Exception reached: " + std::string(e.what()));
+        }
     };
 
-    sdk::Result<GJGameLevel*> importLevelFile(
-        fs::path const& from,
+    inline sdk::Result<GJGameLevel*> importLevelFile(
+        fs::path from,
         sdk::Ref<GJGameLevel> level = GJGameLevel::create()
     ) {
-		log::error("{}", "level ptr check");
-        if (!level) return Err(
-            "level ptr is null."
-        );
-		log::error("{}", "ptr type check");
-        if (!sdk::typeinfo_cast<GJGameLevel*>(level.data())) return Err(
-            "level ptr is not GJGameLevel typed in RTTI."
-        );
+        try {
+            if (!level) return Err(
+                "Level ptr is null."
+            );
+            if (!sdk::typeinfo_cast<GJGameLevel*>(level.data())) return Err(
+                "Level ptr is not GJGameLevel typed in RTTI."
+            );
 
-		from = CCFileUtils::get()->fullPath(geode::utils::string::pathToString(from).c_str(), 0);
+            from = sdk::CCFileUtils::get()->fullPathForFilename(ps(from).c_str(), 0).c_str();
 
-		log::error("{}", "unzip create");
-        auto res400 = fs::Unzip::create(from);
-        if (!res400.isOk()) return geode::Err(
-            std::move(res400).err().value_or("unk err")
-        ); 
-		log::error("{}", "uzip res move");
-        auto file = std::move(res400).unwrap();
+            isImported(level, ps(from));
 
-		log::error("{}", "dump extract");
-        auto dump = file.extract("_data.json").unwrapOrDefault();
-		log::error("{}", "data parse");
-        auto data = json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault();
-		log::error("{}", "data parsed");
+            auto res400 = fs::Unzip::create(from);
+            if (!res400.isOk()) return Err(
+                "Failed to unzip: " + std::move(res400).err().value_or("...")
+            );
+            auto file = std::move(res400).unwrap();
 
-        if (level) updateLevelByJson(data, level);
-		if (!level) return geode::Err("lvl ptr nil");
-		log::error("{}", "level updated");
+            auto dump = file.extract("_data.json").unwrapOrDefault();
+            auto data = json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault();
 
-        //primary song id isnt 0
-        if (level->m_songID) {
-		log::error("{}", "installing song");
-            //path
-            fs::path path = MusicDownloadManager::sharedState()->pathForSong(level->m_songID).c_str();
-            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-            //add if exists
-            if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
-                auto atzip = ps(fs::path(path).filename());
-                fileWriteB(path, file.extract(atzip).unwrapOrDefault());
-            };
-        }
-		log::error("{}", "song install passed");
+            if (level) updateLevelByJson(data, level);
+            if (!level) return Err("Level ptr nil after update by json...");
 
-        for (auto id : str::split(level->m_songIDs, ",")) {
-		log::error("song {}", id);
-            //path
-            fs::path path = MusicDownloadManager::sharedState()->pathForSong(
-                utils::numFromString<int>(id).unwrapOrDefault()
-            ).c_str();
-            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-            //add if exists
-            if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
-                auto atzip = ps(fs::path(path).filename());
-                fileWriteB(path, file.extract(atzip).unwrapOrDefault());
+            //primary song id isnt 0
+            if (level->m_songID) {
+                //path
+                fs::path path = MusicDownloadManager::sharedState()->pathForSong(level->m_songID).c_str();
+                path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+                //add if exists
+                if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                    auto atzip = ps(fs::path(path).filename());
+                    fs::writeb(path, file.extract(atzip).unwrapOrDefault());
+                };
             }
-        }
-		log::error("{}", "songs install passed");
 
-        for (auto id : str::split(level->m_sfxIDs, ",")) {
-		log::error("sfx {}", id);
-            //path
-            fs::path path = MusicDownloadManager::sharedState()->pathForSFX(
-                utils::numFromString<int>(id).unwrapOrDefault()
-            ).c_str();
-            path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-            //add if exists
-            if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
-                auto atzip = ps(fs::path(path).filename());
-                fileWriteB(path, file.extract(atzip).unwrapOrDefault());
+            for (auto id : str::split(level->m_songIDs, ",")) {
+                //path
+                fs::path path = MusicDownloadManager::sharedState()->pathForSong(
+                    utils::numFromString<int>(id).unwrapOrDefault()
+                ).c_str();
+                path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+                //add if exists
+                if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                    auto atzip = ps(fs::path(path).filename());
+                    fs::writeb(path, file.extract(atzip).unwrapOrDefault());
+                }
             }
-        }
-		log::error("{}", "sfx install passed");
 
-        if (auto xd = cocos::CCNode::create()) {
-            xd->setTag(sdk::hash("is-imported-from-file"));
-            xd->setID(ps(from));
-            if (level) level->addChild(xd);
-		log::error("{}", "import node info added");
-        }
+            for (auto id : str::split(level->m_sfxIDs, ",")) {
+                //path
+                fs::path path = MusicDownloadManager::sharedState()->pathForSFX(
+                    utils::numFromString<int>(id).unwrapOrDefault()
+                ).c_str();
+                path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
+                //add if exists
+                if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                    auto atzip = ps(fs::path(path).filename());
+                    fs::writeb(path, file.extract(atzip).unwrapOrDefault());
+                }
+            }
 
-		log::error("{}", "import finished");
-        return sdk::Ok(level.data());
+            return sdk::Ok(level.data());
+        }
+        catch (std::exception& e) { // FEELS LIKE NAILS PLUG IN MY FINGERS
+            return Err("Exception reached: " + std::string(e.what()));
+        }
     };
-
 }

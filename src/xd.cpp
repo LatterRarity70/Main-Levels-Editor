@@ -141,15 +141,14 @@ protected:
 
         CCMenuItemSpriteExtra* save_level = CCMenuItemExt::createSpriteExtra(
             SimpleTextArea::create("SAVE LEVEL")->getLines()[0],
-            [editor, related_File](auto) {
-                editor->getLevelString();
+            [editor, related_File](CCNode* item) {
                 auto pause = EditorPauseLayer::create(editor);
-                pause->saveLevel();
-                auto result = level::exportLevelFile(editor->m_level, related_File);
-                if (result.isErr()) Notification::create(
-                    "failed to export level: " + result.err().value_or("unknown error"),
-                    NotificationIcon::Error
-                )->show();
+                if (!item->getTag()) pause->saveLevel();
+                if (auto err = level::exportLevelFile(editor->m_level, related_File).err())
+                    Notification::create(
+                        "failed to export level: " + err.value_or("unknown error"),
+                        NotificationIcon::Error
+                    )->show();
                 else Notification::create("level saved to file!", NotificationIcon::Info)->show();
                 LocalLevelManager::get()->init();
                 Notification::create("local level manager was reinitialized", NotificationIcon::Info)->show();
@@ -545,7 +544,7 @@ protected:
                 fs::create_directories(pack, err);
                 //copy levels
                 for (auto id : mle::getListingIDs()) {
-                    if (auto impinfo = mle::tryLoadFromFiles(id)->getChildByTag("is-imported-from-file"_h)) {
+                    if (auto impinfo = level::isImported(mle::tryLoadFromFiles(id))) {
                         fs::copy_file(impinfo->getID(), pack / fmt::format("{}.level", id), err);
                     }
                 };
@@ -634,7 +633,7 @@ protected:
                 unzip.extractAllTo(workdir).isOk();
                 //copy levels
                 for (auto id : mle::getListingIDs()) {
-                    if (auto impinfo = mle::tryLoadFromFiles(id)->getChildByTag("is-imported-from-file"_h)) {
+                    if (auto impinfo = level::isImported(mle::tryLoadFromFiles(id))) {
                         fs::copy_file(impinfo->getID(), workdir / "resources" / fmt::format("{}.level", id), err);
                     }
                 };
@@ -819,18 +818,30 @@ class $modify(MLE_LocalLevelManager, LocalLevelManager) {
 
         log::debug("Loading .level files for list: {}", mle::getListingIDs());
         for (auto id : mle::getListingIDs()) {
+
             log::debug("Loading level {}", id);
+
             auto level = GJGameLevel::create();
             level->m_levelName = "___level_was_not_loaded";
             level = mle::tryLoadFromFiles(level, id);
+
             log::debug("{}", level->m_levelName.c_str());
+
             if (std::string(level->m_levelName.c_str()) != "___level_was_not_loaded") { // level name was changed if it was loaded
                 log::info("Loaded level {}", id);
+
                 if (std::string(level->m_levelString.c_str()).empty()) void();
                 else m_mainLevels[id] = level->m_levelString;
+
                 log::debug("Level {} string size is {}", id, std::string(level->m_levelString.c_str()).size());
-                MLE_LevelsInJSON::get()->insert_or_assign(id, level::jsonFromLevel(level));
+
+                auto val = level::jsonFromLevel(level);
+                if (auto importinf = level::isImported(level)) val["file"] = importinf->getID();
+                else log::error("Level is not imported?.. {}", importinf);
+                MLE_LevelsInJSON::get()->insert_or_assign(id, val);
+
                 log::debug("Level {} json dump size is {}", id, MLE_LevelsInJSON::get()->at(id).dump().size());
+                log::debug("Level file: {}", id, MLE_LevelsInJSON::get()->at(id)["file"].dump());
             }
             else log::debug("The .level file for {} was not founded", id);
         }
@@ -871,6 +882,7 @@ class $modify(MLE_GameLevelManager, GameLevelManager) {
             );*/
             auto loadedLevel = GJGameLevel::create();
             level::updateLevelByJson(MLE_LevelsInJSON::get()->at(levelID), loadedLevel);
+            if (auto aw = level::isImported(loadedLevel)) level::isImported(level, aw->getID());
             //xd
             level->m_levelString = loadedLevel->m_levelString.c_str();
             level->m_stars = (loadedLevel->m_stars.value());
@@ -891,7 +903,7 @@ class $modify(MLE_GameLevelManager, GameLevelManager) {
 
         level->m_levelID = levelID; // -1, -2 for listing exists. no default id pls
         level->m_songID = !level->m_audioTrack ? level->m_songID : 0; // what the fuck why its ever was saved
-        level->m_levelType = GJLevelType::Local;
+        level->m_levelType = GJLevelType::Main;
         level->m_levelString = dontGetLevelString ? "" : level->m_levelString.c_str();
 
         return level;
@@ -942,7 +954,7 @@ class $modify(MLE_LevelTools, LevelTools) {
 
         level->m_levelID = levelID; // -1, -2 for listing exists. no default id pls
         level->m_songID = !level->m_audioTrack ? level->m_songID : 0; // what the fuck why its ever was saved
-        level->m_levelType = GJLevelType::Local;
+        level->m_levelType = GJLevelType::Main;
         level->m_levelString = dontGetLevelString ? "" : level->m_levelString.c_str();
 
         return level;
@@ -1193,26 +1205,36 @@ ConfigureLevelFileDataPopup can be closed to get access to default level setting
 
 */
 
+#include <Geode/modify/EditorPauseLayer.hpp>
+class $modify(MLE_EditorPauseLayer, EditorPauseLayer) {
+    $override void saveLevel() {
+        EditorPauseLayer::saveLevel();
+
+        //impinfo in level object was created at .level import function
+        if (auto impinfo = level::isImported(m_editorLayer->m_level)) {
+            auto k = ConfigureLevelFileDataPopup::create(this->m_editorLayer, impinfo->getID());
+            if (k) if (auto a = typeinfo_cast<CCMenuItem*>(k->querySelector("save_level"_spr))) {
+                a->setTag(true); //disable saveLevel call..
+                a->activate();
+            }
+        }
+    }
+};
+
 #include <Geode/modify/EditorUI.hpp>
-class $modify(MLE_EditorUI, EditorUI) {
+class $modify(MLE_EditorUI, EditorUI) { 
     void showInfoPopup(float) {
         MDPopup::create(
             "Welcome to .level Editor",
             R"(Open default <cg>Level Settings</c> to open tools that help you edit the .level file:
-
 - Meta data editor
 - Difficulty sprite selector
-- Coins replace tool
-
-<co>`Current level can be saved to .level file only in that tools!`</c>
-
-<cr>`And save buttons in editor pause menu doesn't work!`</c>)", 
-"OK"
+- Coins replace tool)", "OK"
 )->show();
     }
     $override bool init(LevelEditorLayer * editorLayer) {
 		if (!EditorUI::init(editorLayer)) return false;
-        if (auto impinfo = editorLayer->m_level->getChildByTag("is-imported-from-file"_h)) {
+        if (auto impinfo = level::isImported(editorLayer->m_level)) {
             this->scheduleOnce(schedule_selector(MLE_EditorUI::showInfoPopup), 1.f);
         }
 		return true;
@@ -1221,7 +1243,7 @@ class $modify(MLE_EditorUI, EditorUI) {
         EditorUI::onSettings(sender);
 
         //impinfo in level object was created at .level import function
-        if (auto impinfo = m_editorLayer->m_level->getChildByTag("is-imported-from-file"_h)) {
+        if (auto impinfo = level::isImported(m_editorLayer->m_level)) {
             //coins replacer
             if (TYPE_AND_ID_HACKS_FOR_SECRET_COINS) createQuickPopup(
                 "Replace coins?",
@@ -1414,7 +1436,7 @@ class $modify(MLE_GameObjectExt, GameObject) {
                     lvl->setUserObject("org-"_spr + std::string("m_localOrSaved"), valTagContainerObj(lvl->m_localOrSaved));
                     lvl->m_localOrSaved = true;
                     lvl->setUserObject("org-"_spr + std::string("m_levelType"), valTagContainerObj((int)lvl->m_levelType));
-                    lvl->m_levelType = GJLevelType::Local;
+                    lvl->m_levelType = GJLevelType::Main;
                     play->scheduleOnce(schedule_selector(MLE_GameObjectExt::PlayLayerCustomSetup), 0.f);
                 }
             }

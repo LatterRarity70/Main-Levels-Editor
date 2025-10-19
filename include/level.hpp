@@ -332,11 +332,12 @@ namespace level {
             fs::create_directories(to.parent_path(), ignored_error);
             fs::remove(to, ignored_error);
 
-            auto res290 = fs::Zip::create(to);
-            if (!res290.isOk()) return Err(
-                std::move(res290).err().value_or("unknown error")
+#define geode level // call Err from this namespace instead of geode
+            GEODE_UNWRAP_INTO(
+                auto file, fs::Zip::create(ps(to))
+                .mapErr([](std::string err) { return fmt::format("Unable to create zip, {}", err); })
             );
-            auto file = std::move(res290).unwrap();
+#undef geode
 
             // makin data dump like that can save you from matjson errors related to random memory
             auto lvlJSON = jsonFromLevel(level);
@@ -370,6 +371,8 @@ namespace level {
 
             //fe the ids from list
             for (auto id : str::split(level->m_songIDs, ",")) {
+                //skip primary
+                if (level->m_songID == utils::numFromString<int>(id).unwrapOr(0)) continue;
                 //path
                 fs::path path = MusicDownloadManager::sharedState()->pathForSong(
                     utils::numFromString<int>(id).unwrapOrDefault()
@@ -401,7 +404,7 @@ namespace level {
             return sdk::Ok(std::move(lvlJSON));
         }
         catch (std::exception& e) { // feels like nails plug in my fingers
-            return Err("Exception reached: " + std::string(e.what()));
+            return Err("Exception reached, " + std::string(e.what()));
         }
     };
 
@@ -421,11 +424,12 @@ namespace level {
 
             isImported(level, ps(from));
 
-            auto res400 = fs::Unzip::create(from);
-            if (!res400.isOk()) return Err(
-                "Failed to unzip: " + std::move(res400).err().value_or("...")
+#define geode level // call Err from this namespace instead of geode
+            GEODE_UNWRAP_INTO(
+                auto file, fs::Unzip::create(ps(from))
+                .mapErr([](std::string err) { return fmt::format("Unable to read zip, {}", err); })
             );
-            auto file = std::move(res400).unwrap();
+#undef geode
 
             auto dump = file.extract("_data.json").unwrapOrDefault();
             auto data = json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault();
@@ -446,6 +450,8 @@ namespace level {
             }
 
             for (auto id : str::split(level->m_songIDs, ",")) {
+                //skip primary song..
+                if (level->m_songID == utils::numFromString<int>(id).unwrapOr(0)) continue;
                 //path
                 fs::path path = MusicDownloadManager::sharedState()->pathForSong(
                     utils::numFromString<int>(id).unwrapOrDefault()
@@ -474,7 +480,7 @@ namespace level {
             return sdk::Ok(level.data());
         }
         catch (std::exception& e) { // FEELS LIKE NAILS PLUG IN MY FINGERS
-            return Err("Exception reached: " + std::string(e.what()));
+            return Err("Exception reached, " + std::string(e.what()));
         }
     };
 }

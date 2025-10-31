@@ -15,6 +15,7 @@ namespace level {
 		using namespace sdk::file;
         auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
         auto writeb(path const& p, auto data = readb("")) { return readBinary(p).unwrapOrDefault(); }
+        inline static auto err = std::error_code();
     }
     namespace cocos {
 		using namespace cocos2d;
@@ -371,8 +372,6 @@ namespace level {
 
             //fe the ids from list
             for (auto id : str::split(level->m_songIDs, ",")) {
-                //skip primary
-                if (level->m_songID == utils::numFromString<int>(id).unwrapOr(0)) continue;
                 //path
                 fs::path path = MusicDownloadManager::sharedState()->pathForSong(
                     utils::numFromString<int>(id).unwrapOrDefault()
@@ -424,6 +423,12 @@ namespace level {
 
             isImported(level, ps(from));
 
+            auto importanterrc = std::error_code();
+            fs::file_size(from, importanterrc);
+            if (importanterrc) return Err(
+				"Failed to check file, " + std::move(importanterrc).message()
+			);
+
 #define geode level // call Err from this namespace instead of geode
             GEODE_UNWRAP_INTO(
                 auto file, fs::Unzip::create(ps(from))
@@ -442,24 +447,26 @@ namespace level {
                 //path
                 fs::path path = MusicDownloadManager::sharedState()->pathForSong(level->m_songID).c_str();
                 path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-                //add if exists
-                if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                //add if not exists
+                if (!cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
                     auto atzip = ps(fs::path(path).filename());
+                    fs::create_directories(path.parent_path(), fs::err);
                     fs::writeb(path, file.extract(atzip).unwrapOrDefault());
                 };
             }
 
             for (auto id : str::split(level->m_songIDs, ",")) {
-                //skip primary song..
+                //skip primary
                 if (level->m_songID == utils::numFromString<int>(id).unwrapOr(0)) continue;
                 //path
                 fs::path path = MusicDownloadManager::sharedState()->pathForSong(
                     utils::numFromString<int>(id).unwrapOrDefault()
                 ).c_str();
                 path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-                //add if exists
-                if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                //add if not exists
+                if (!cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
                     auto atzip = ps(fs::path(path).filename());
+                    fs::create_directories(path.parent_path(), fs::err);
                     fs::writeb(path, file.extract(atzip).unwrapOrDefault());
                 }
             }
@@ -470,9 +477,10 @@ namespace level {
                     utils::numFromString<int>(id).unwrapOrDefault()
                 ).c_str();
                 path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
-                //add if exists
-                if (cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
+                //add if not exists
+                if (!cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
                     auto atzip = ps(fs::path(path).filename());
+                    fs::create_directories(path.parent_path(), fs::err);
                     fs::writeb(path, file.extract(atzip).unwrapOrDefault());
                 }
             }

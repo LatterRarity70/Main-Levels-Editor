@@ -13,8 +13,8 @@ namespace level {
     namespace fs {
 		using namespace std::filesystem;
 		using namespace sdk::file;
-        auto readb(path const& p) { return file::readBinary(p).unwrapOrDefault(); }
-        auto writeb(path const& p, auto data = readb("")) { return file::writeBinarySafe(p, data); }
+        auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
+        auto writeb(path const& p, auto data = readb("")) { return writeBinarySafe(p, data); }
         inline static auto err = std::error_code();
     }
     namespace cocos {

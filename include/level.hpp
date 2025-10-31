@@ -13,8 +13,8 @@ namespace level {
     namespace fs {
 		using namespace std::filesystem;
 		using namespace sdk::file;
-        auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
-        auto writeb(path const& p, auto data = readb("")) { return readBinary(p).unwrapOrDefault(); }
+        auto readb(path const& p) { return file::readBinary(p).unwrapOrDefault(); }
+        auto writeb(path const& p, auto data = readb("")) { return file::writeBinarySafe(p, data); }
         inline static auto err = std::error_code();
     }
     namespace cocos {
@@ -335,7 +335,7 @@ namespace level {
 
 #define geode level // call Err from this namespace instead of geode
             GEODE_UNWRAP_INTO(
-                auto file, fs::Zip::create(ps(to))
+                auto file, fs::Zip::create()
                 .mapErr([](std::string err) { return fmt::format("Unable to create zip, {}", err); })
             );
 #undef geode
@@ -400,6 +400,10 @@ namespace level {
                 }
             }
 
+			if (auto err = fs::writeb(to, file.getData()).err()) return Err(
+				err.value_or("unknown error")
+			);
+
             return sdk::Ok(std::move(lvlJSON));
         }
         catch (std::exception& e) { // feels like nails plug in my fingers
@@ -429,9 +433,14 @@ namespace level {
 				"Failed to check file, " + std::move(importanterrc).message()
 			);
 
+            auto zipdata = fs::readb(from);
+            if (!zipdata.size()) return Err(
+				"Failed to read file (size is 0)"
+			);
+
 #define geode level // call Err from this namespace instead of geode
             GEODE_UNWRAP_INTO(
-                auto file, fs::Unzip::create(ps(from))
+                auto file, fs::Unzip::create(zipdata)
                 .mapErr([](std::string err) { return fmt::format("Unable to read zip, {}", err); })
             );
 #undef geode

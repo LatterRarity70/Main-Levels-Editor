@@ -14,18 +14,8 @@ namespace level {
         using namespace std::filesystem;
         using namespace sdk::file;
         inline static auto err = std::error_code();
-        auto readb(path const& p) {
-            std::ifstream file(p, std::ios::binary | std::ios::ate);
-            if (!file) return std::vector<uint8_t>{};
-            size_t size = file.tellg();
-            std::vector<uint8_t> buffer(size);
-            file.seekg(0);
-            file.read(reinterpret_cast<char*>(buffer.data()), size);
-            return buffer;
-        }
-        auto writeb(path const& p, auto data = readb("")) { 
-            return writeBinarySafe(p, data); 
-        }
+        auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
+        auto writeb(path const& p, auto data = readb("")) { return writeBinarySafe(p, data); }
     }
     namespace cocos {
         using namespace cocos2d;

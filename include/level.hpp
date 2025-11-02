@@ -616,7 +616,7 @@ namespace level {
             log::error("{}:{}", __FUNCTION__, __LINE__);
             auto dump = archive.extract("_data.json");
             log::error("{}:{}", __FUNCTION__, __LINE__);
-            const auto& data = std::move(
+            auto data = std::move(
                 json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault()
             );
             log::error("{}:{}", __FUNCTION__, __LINE__);

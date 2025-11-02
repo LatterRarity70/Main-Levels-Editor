@@ -322,9 +322,12 @@ namespace level {
     }
 
     inline void updateLevelByJson(const json::Value& json, sdk::Ref<GJGameLevel> level) {
+        log::error("{}:{}", __FUNCTION__, __LINE__);
         if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
+        log::error("{}:{}", __FUNCTION__, __LINE__);
         // for mle, helps store path in level json instead of level object
         if (json.contains("file")) isImported(level, json["file"].asString().unwrapOr("invalid file value"));
+        log::error("{}:{}", __FUNCTION__, __LINE__);
         //log::debug("{} update by json: {}", level, json.dump());
 #define asInt(member, ...) level->m_##member = __VA_ARGS__(json.get(#member"").unwrapOr(static_cast<int>(level->m_##member)).asInt().unwrapOr(static_cast<int>(level->m_##member)));
 #define asSeed(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member.value()).as<int>().unwrapOr(level->m_##member.value());
@@ -332,9 +335,13 @@ namespace level {
 #define asDouble(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member).asDouble().unwrapOr(level->m_##member);
 #define asBool(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member).asBool().unwrapOr(level->m_##member);
 
+        log::error("{}:{}", __FUNCTION__, __LINE__);
         asSeed(levelID);
+        log::error("{}:{}", __FUNCTION__, __LINE__);
         asString(levelName);// = json["levelName"].().().c_str();
+        log::error("{}:{}", __FUNCTION__, __LINE__);
         asString(levelDesc);// = json["levelDesc"].asString().unwrapOr().c_str();
+        log::error("{}:{}", __FUNCTION__, __LINE__);
         asString(levelString);// = json["levelString"].asString().unwrapOr().c_str();
         asString(creatorName);// = json["creatorName"].asString().unwrapOr().c_str();
         asString(recordString);// = json["recordString"].asString().unwrapOr().c_str();
@@ -450,6 +457,7 @@ namespace level {
         asString(localBestTimes);// = json["localBestTimes"].asString().unwrapOr().c_str();
         asString(localBestPoints);// = json["localBestPoints"].asString().unwrapOr().c_str();
 
+        log::error("{}:{}", __FUNCTION__, __LINE__);
 #undef asInt //(member, ...) level->m_##member = __VA_ARGS__(json[#member""].asInt().unwrapOr(static_cast<int>(level->m_##member)));
 #undef asSeed //(member) level->m_##member = json[#member""].as<int>().unwrapOr(level->m_##member.value());
 #undef asString //(member) level->m_##member = json[#member""].asString().unwrapOr(level->m_##member.c_str()).c_str();

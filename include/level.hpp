@@ -334,9 +334,9 @@ namespace level {
         if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
         log::error("{}:{}", __FUNCTION__, __LINE__);
         // for mle, helps store path in level json instead of level object
-        if (json.contains("file")) isImported(
-            level, json.get("file").unwrapOr("").asString().unwrapOr("invalid file value")
-        );
+        auto file = json.get("file").unwrapOr("").asString().unwrapOr("");
+        log::error("{}:{}", __FUNCTION__, __LINE__);
+        if (file.size() > 3) isImported(level, file);
         log::error("{}:{}", __FUNCTION__, __LINE__);
         //log::debug("{} update by json: {}", level, json.dump());
 #define asInt(member, ...) level->m_##member = __VA_ARGS__(json.get(#member"").unwrapOr(static_cast<int>(level->m_##member)).asInt().unwrapOr(static_cast<int>(level->m_##member)));

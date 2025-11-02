@@ -14,8 +14,8 @@ namespace level {
 		using namespace std::filesystem;
 		using namespace sdk::file;
         inline static auto err = std::error_code();
-        auto readb(path const& p) { return file::readBinary(p).unwrapOrDefault(); }
-        auto writeb(path const& p, auto data = readb("")) { return file::writeBinarySafe(p, data); }
+        auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
+        auto writeb(path const& p, auto data = readb("")) { return writeBinarySafe(p, data); }
         class SimpleTar {
         public:
             struct File {
@@ -110,7 +110,7 @@ namespace level {
                 return result;
             }
             static sdk::Result<SimpleTar> unpack(const std::vector<uint8_t>& data) {
-                if (data.size() < 512) return Err(
+                if (data.size() < 512) return geode::Err(
                     "Archive too small"
                 );
                 SimpleTar tar;
@@ -122,16 +122,16 @@ namespace level {
                         isZero = false; break;
                     }
                     if (isZero) break;
-                    if (std::memcmp(header->magic, "ustar", 5) != 0) return Err(
+                    if (std::memcmp(header->magic, "ustar", 5) != 0) return geode::Err(
                         "Invalid TAR format"
                     ); 
                     uint64_t fileSize = readOctal(header->size, sizeof(header->size));
-                    if (fileSize > 500 * 1024 * 1024) return Err("File too large");
+                    if (fileSize > 500 * 1024 * 1024) return geode::Err("File too large");
                     std::string filename(header->filename, std::find(
                         header->filename, header->filename + 100, '\0'
                     ));
                     pos += 512; // skip header
-                    if (pos + fileSize > data.size()) return Err(
+                    if (pos + fileSize > data.size()) return geode::Err(
                         "Corrupted TAR: file data exceeds archive size"
                     );
                     std::vector<uint8_t> fileData(

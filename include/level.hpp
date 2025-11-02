@@ -329,21 +329,21 @@ namespace level {
         return json;
     }
 
-    inline void updateLevelByJson(const json::Value& json, sdk::Ref<GJGameLevel> level) {
+    inline void updateLevelByJson(json::Value json, sdk::Ref<GJGameLevel> level) {
         log::error("{}:{}", __FUNCTION__, __LINE__);
         if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
         log::error("{}:{}", __FUNCTION__, __LINE__);
         // for mle, helps store path in level json instead of level object
-        auto file = json.get("file").unwrapOr("").asString().unwrapOr("");
+        auto file = json.get("file").unwrapOr(json).asString().unwrapOr("");
         log::error("{}:{}", __FUNCTION__, __LINE__);
         if (file.size() > 3) isImported(level, file);
         log::error("{}:{}", __FUNCTION__, __LINE__);
         //log::debug("{} update by json: {}", level, json.dump());
-#define asInt(member, ...) level->m_##member = __VA_ARGS__(json.get(#member"").unwrapOr(static_cast<int>(level->m_##member)).asInt().unwrapOr(static_cast<int>(level->m_##member)));
-#define asSeed(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member.value()).as<int>().unwrapOr(level->m_##member.value());
-#define asString(member) level->m_##member = json.get(#member"").unwrapOr(std::string_view(level->m_##member.c_str())).asString().unwrapOr(std::string_view(level->m_##member.c_str()).data()).c_str();
-#define asDouble(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member).asDouble().unwrapOr(level->m_##member);
-#define asBool(member) level->m_##member = json.get(#member"").unwrapOr(level->m_##member).asBool().unwrapOr(level->m_##member);
+#define asInt(member, ...) level->m_##member = __VA_ARGS__(json.get(#member"").unwrapOr(json).asInt().unwrapOr(static_cast<int>(level->m_##member)));
+#define asSeed(member) level->m_##member = json.get(#member"").unwrapOr(json).as<int>().unwrapOr(level->m_##member.value());
+#define asString(member) level->m_##member = json.get(#member"").unwrapOr(json).asString().unwrapOr(std::string_view(level->m_##member.c_str()).data()).c_str();
+#define asDouble(member) level->m_##member = json.get(#member"").unwrapOr(json).asDouble().unwrapOr(level->m_##member);
+#define asBool(member) level->m_##member = json.get(#member"").unwrapOr(json).asBool().unwrapOr(level->m_##member);
 
         log::error("{}:{}", __FUNCTION__, __LINE__);
         asSeed(levelID);

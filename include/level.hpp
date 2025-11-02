@@ -14,8 +14,18 @@ namespace level {
         using namespace std::filesystem;
         using namespace sdk::file;
         inline static auto err = std::error_code();
-        auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
-        auto writeb(path const& p, auto data = readb("")) { return writeBinarySafe(p, data); }
+        auto readb(path const& p) {
+            std::ifstream file(p, std::ios::binary | std::ios::ate);
+            if (!file) return std::vector<uint8_t>{};
+            size_t size = file.tellg();
+            std::vector<uint8_t> buffer(size);
+            file.seekg(0);
+            file.read(reinterpret_cast<char*>(buffer.data()), size);
+            return buffer;
+        }
+        auto writeb(path const& p, auto data = readb("")) { 
+            return writeBinarySafe(p, data); 
+        }
     }
     namespace cocos {
         using namespace cocos2d;
@@ -31,30 +41,22 @@ namespace level {
     // Null if not imported, call getID to get path of .level file
     // Example: if (auto inf = isImported(level)) { auto path = inf->getID(); }
     auto isImported(sdk::Ref<GJGameLevel> level, std::string newPath = "") {
-        log::error("{}:{}", __FUNCTION__, __LINE__);
         //log::debug("{}({}, {})", __FUNCTION__, level.data(), json::Value(newPath).dump());
         //sdk::SceneManager::get()->keepAcrossScenes(level);
         auto tag = sdk::hash("is-imported-from-file");
 
         if (not newPath.empty()) {
-            log::error("{}:{}", __FUNCTION__, __LINE__);
             if (cocos::fileExistsInSearchPaths(newPath.c_str())) {
-                log::error("{}:{}", __FUNCTION__, __LINE__);
                 auto xd = cocos::CCNode::create();
                 xd->setID(newPath);
                 xd->setTag(tag);
-                log::error("{}:{}", __FUNCTION__, __LINE__);
                 if (level) {
-                    log::error("{}:{}", __FUNCTION__, __LINE__);
                     level->removeChildByTag(tag);
                     level->addChild(xd);
-                    log::error("{}:{}", __FUNCTION__, __LINE__);
                 }
-                log::error("{}:{}", __FUNCTION__, __LINE__);
             }
             else log::error("file '{}' does not exist", newPath);
         };
-        log::error("{}:{}", __FUNCTION__, __LINE__);
 
         return !level ? nullptr : level->getChildByTag(tag);
     };

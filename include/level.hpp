@@ -16,148 +16,6 @@ namespace level {
         inline static auto err = std::error_code();
         auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
         auto writeb(path const& p, auto data = readb("")) { return writeBinarySafe(p, data); }
-        class SimpleTar {
-        public:
-            struct File {
-                std::string filename;
-                std::vector<uint8_t> data;
-                File(std::string name, std::vector<uint8_t> d
-                ) : filename(std::move(name)), data(std::move(d)) {
-                }
-            };
-        private:
-            std::vector<File> m_files;
-            // TAR header (512 bytes)
-            struct TarHeader {
-                char filename[100];
-                char mode[8];
-                char uid[8];
-                char gid[8];
-                char size[12];      // octal
-                char mtime[12];     // octal
-                char checksum[8];   // octal
-                char typeflag;
-                char linkname[100];
-                char magic[6];      // "ustar\0"
-                char version[2];    // "00"
-                char uname[32];
-                char gname[32];
-                char devmajor[8];
-                char devminor[8];
-                char prefix[155];
-                char padding[12];
-                TarHeader() {
-                    std::memset(this, 0, sizeof(TarHeader));
-                    std::memcpy(magic, "ustar", 6);
-                    std::memcpy(version, "00", 2);
-                    std::memcpy(mode, "0000644", 8);
-                    std::memcpy(uid, "0000000", 8);
-                    std::memcpy(gid, "0000000", 8);
-                    typeflag = '0'; // regular file
-                }
-            };
-            static void writeOctal(char* dest, size_t destSize, uint64_t value) {
-                std::snprintf(dest, destSize, "%0*lo", (int)(destSize - 1), (unsigned long)value);
-            }
-            static uint64_t readOctal(const char* str, size_t size) {
-                uint64_t result = 0;
-                for (size_t i = 0; i < size && str[i] >= '0' && str[i] <= '7'; ++i) {
-                    result = result * 8 + (str[i] - '0');
-                }
-                return result;
-            }
-            static unsigned calculateChecksum(const TarHeader& header) {
-                unsigned sum = 0;
-                const unsigned char* bytes = reinterpret_cast<const unsigned char*>(&header);
-                for (size_t i = 0; i < sizeof(TarHeader); ++i) {
-                    // checksum field is treated as spaces during calculation
-                    if (i >= 148 && i < 156) sum += ' ';
-                    else sum += bytes[i];
-                }
-                return sum;
-            }
-        public:
-            void add(std::string filename, std::vector<uint8_t> data) {
-                if (has(filename)) return;
-                m_files.emplace_back(std::move(filename), std::move(data));
-            }
-            void add(std::string filename, const std::string& text) {
-                if (has(filename)) return;
-                std::vector<uint8_t> data(text.begin(), text.end());
-                add(std::move(filename), std::move(data));
-            }
-            std::vector<uint8_t> pack() const {
-                std::vector<uint8_t> result;
-                size_t totalSize = 1024; // EOF
-                for (const auto& file : m_files) {
-                    totalSize += 512 + file.data.size() + ((512 - (file.data.size() % 512)) % 512);
-                }
-                result.reserve(totalSize);
-                for (const auto& file : m_files) {
-                    TarHeader header;
-                    std::string safeName = file.filename.substr(0, 99);
-                    std::memcpy(header.filename, safeName.c_str(), safeName.size());
-                    writeOctal(header.size, sizeof(header.size), file.data.size());
-                    writeOctal(header.mtime, sizeof(header.mtime), std::time(nullptr));
-                    unsigned checksum = calculateChecksum(header);
-                    writeOctal(header.checksum, sizeof(header.checksum), checksum);
-                    const uint8_t* headerBytes = reinterpret_cast<const uint8_t*>(&header);
-                    result.insert(result.end(), headerBytes, headerBytes + 512);
-                    result.insert(result.end(), file.data.begin(), file.data.end());
-                    size_t padding = (512 - (file.data.size() % 512)) % 512;
-                    result.insert(result.end(), padding, 0);
-                }
-                result.insert(result.end(), 1024, 0);
-                return result;
-            }
-            static sdk::Result<SimpleTar> unpack(const std::vector<uint8_t>& data) {
-                if (data.size() < 512) return geode::Err(
-                    "Archive too small"
-                );
-                SimpleTar tar;
-                size_t pos = 0;
-                while (pos + 512 <= data.size()) {
-                    const TarHeader* header = reinterpret_cast<const TarHeader*>(data.data() + pos);
-                    bool isZero = true;
-                    for (size_t i = 0; i < 512; ++i) if (data[pos + i] != 0) {
-                        isZero = false; break;
-                    }
-                    if (isZero) break;
-                    if (std::memcmp(header->magic, "ustar", 5) != 0) return geode::Err(
-                        "Invalid TAR format"
-                    );
-                    uint64_t fileSize = readOctal(header->size, sizeof(header->size));
-                    if (fileSize > 500 * 1024 * 1024) return geode::Err("File too large");
-                    std::string filename(header->filename, std::find(
-                        header->filename, header->filename + 100, '\0'
-                    ));
-                    pos += 512; // skip header
-                    if (pos + fileSize > data.size()) return geode::Err(
-                        "Corrupted TAR: file data exceeds archive size"
-                    );
-                    std::vector<uint8_t> fileData(
-                        data.begin() + pos, data.begin() + pos + fileSize
-                    );
-                    tar.m_files.emplace_back(std::move(filename), std::move(fileData));
-                    pos += fileSize;
-                    pos += size_t(512 - (fileSize % 512)) % 512; //padding
-                }
-                return sdk::Ok(std::move(tar));
-            }
-            const std::vector<File>& files() const { return m_files; }
-            std::vector<uint8_t> extract(const std::string& filename) const {
-                for (const auto& file : m_files) {
-                    if (file.filename == filename) {
-                        return file.data;
-                    }
-                }
-                return {};
-            }
-            bool has(const std::string& filename) const {
-                for (const auto& file : m_files) if (file.filename == filename) return true;
-                return false;
-            }
-        };
     }
     namespace cocos {
         using namespace cocos2d;
@@ -330,14 +188,10 @@ namespace level {
     }
 
     inline void updateLevelByJson(json::Value json, sdk::Ref<GJGameLevel> level) {
-        log::error("{}:{}", __FUNCTION__, __LINE__);
         if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
-        log::error("{}:{}", __FUNCTION__, __LINE__);
         // for mle, helps store path in level json instead of level object
         auto file = json.get("file").unwrapOr(json).asString().unwrapOr("");
-        log::error("{}:{}", __FUNCTION__, __LINE__);
         if (file.size() > 3) isImported(level, file);
-        log::error("{}:{}", __FUNCTION__, __LINE__);
         //log::debug("{} update by json: {}", level, json.dump());
 #define asInt(member, ...) level->m_##member = __VA_ARGS__(json.get(#member"").unwrapOr(json).asInt().unwrapOr(static_cast<int>(level->m_##member)));
 #define asSeed(member) level->m_##member = json.get(#member"").unwrapOr(json).as<int>().unwrapOr(level->m_##member.value());
@@ -345,13 +199,9 @@ namespace level {
 #define asDouble(member) level->m_##member = json.get(#member"").unwrapOr(json).asDouble().unwrapOr(level->m_##member);
 #define asBool(member) level->m_##member = json.get(#member"").unwrapOr(json).asBool().unwrapOr(level->m_##member);
 
-        log::error("{}:{}", __FUNCTION__, __LINE__);
         asSeed(levelID);
-        log::error("{}:{}", __FUNCTION__, __LINE__);
         asString(levelName);// = json["levelName"].().().c_str();
-        log::error("{}:{}", __FUNCTION__, __LINE__);
         asString(levelDesc);// = json["levelDesc"].asString().unwrapOr().c_str();
-        log::error("{}:{}", __FUNCTION__, __LINE__);
         asString(levelString);// = json["levelString"].asString().unwrapOr().c_str();
         asString(creatorName);// = json["creatorName"].asString().unwrapOr().c_str();
         asString(recordString);// = json["recordString"].asString().unwrapOr().c_str();
@@ -467,7 +317,6 @@ namespace level {
         asString(localBestTimes);// = json["localBestTimes"].asString().unwrapOr().c_str();
         asString(localBestPoints);// = json["localBestPoints"].asString().unwrapOr().c_str();
 
-        log::error("{}:{}", __FUNCTION__, __LINE__);
 #undef asInt //(member, ...) level->m_##member = __VA_ARGS__(json[#member""].asInt().unwrapOr(static_cast<int>(level->m_##member)));
 #undef asSeed //(member) level->m_##member = json[#member""].as<int>().unwrapOr(level->m_##member.value());
 #undef asString //(member) level->m_##member = json[#member""].asString().unwrapOr(level->m_##member.c_str()).c_str();
@@ -493,7 +342,12 @@ namespace level {
             fs::create_directories(to.parent_path(), ignored_error);
             fs::remove(to, ignored_error);
 
-            fs::SimpleTar archive;
+#define geode level // call Err from this namespace instead of geode
+            GEODE_UNWRAP_INTO(
+                auto archive, fs::Zip::create()
+                .mapErr([](std::string err) { return fmt::format("Unable to create zip, {}", err); })
+            );
+#undef geode
 
             // makin data dump like that can save you from matjson errors related to random memory
             auto lvlJSON = jsonFromLevel(level);
@@ -518,7 +372,9 @@ namespace level {
                 path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
                 //add if exists
                 if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
-                    archive.add(ps(fs::path(path).filename()), fs::readb(path));
+                    if (auto err = archive.add(fs::path(path).filename(), fs::readb(path)).err()) Err(
+                        err.value_or("unknown error")
+                    );
                 }
             }
 
@@ -531,7 +387,9 @@ namespace level {
                 path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
                 //add if exists
                 if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
-                    archive.add(ps(fs::path(path).filename()), fs::readb(path));
+                    if (auto err = archive.add(fs::path(path).filename(), fs::readb(path)).err()) Err(
+                        err.value_or("unknown error")
+                    );
                 };
             }
 
@@ -544,18 +402,20 @@ namespace level {
                 path = cocos::CCFileUtils::get()->fullPathForFilename(ps(path).c_str(), 0).c_str();
                 //add if exists
                 if (cocos::fileExistsInSearchPaths(ps(path).c_str())) {
-                    archive.add(ps(fs::path(path).filename()), fs::readb(path));
+                    if (auto err = archive.add(fs::path(path).filename(), fs::readb(path)).err()) Err(
+                        err.value_or("unknown error")
+                    );
                 }
             }
 
-            auto packed = archive.pack();
+            auto packed = archive.getData();
             if (auto err = fs::writeb(to, packed).err()) return Err(
                 err.value_or("Failed to write archive")
             );
 
             log::info(
-                "Exported level to {} ({} files, {} bytes)",
-                ps(to), archive.files().size(), packed.size()
+                "Exported level to {} ({} bytes)",
+                ps(to), packed.size()
             );
 
             return sdk::Ok(std::move(lvlJSON));
@@ -570,64 +430,43 @@ namespace level {
         sdk::Ref<GJGameLevel> level = GJGameLevel::create()
     ) {
         try {
-            log::error("{}:{}", __FUNCTION__, __LINE__);
             if (!level) return Err(
                 "Level ptr is null."
             );
-            log::error("{}:{}", __FUNCTION__, __LINE__);
             if (!sdk::typeinfo_cast<GJGameLevel*>(level.data())) return Err(
                 "Level ptr is not GJGameLevel typed in RTTI."
             );
-            log::error("{}:{}", __FUNCTION__, __LINE__);
 
-            log::error("{}:{}", __FUNCTION__, __LINE__);
             from = sdk::CCFileUtils::get()->fullPathForFilename(ps(from).c_str(), 0).c_str();
 
-            log::error("{}:{}", __FUNCTION__, __LINE__);
             isImported(level, ps(from));
 
-            log::error("{}:{}", __FUNCTION__, __LINE__);
             auto importanterrc = std::error_code();
             auto sizech = fs::file_size(from, importanterrc);
             if (importanterrc or !sizech) return Err((std::stringstream() <<
                 "Failed to check file size (" << sizech << "), " <<
                 std::move(importanterrc).message()
                 ).str());
-            log::error("{}:{}", __FUNCTION__, __LINE__);
 
-            log::error("{}:{}", __FUNCTION__, __LINE__);
             auto archiveData = fs::readb(from);
             if (archiveData.empty()) return Err(
                 "Failed to read file (size is 0)"
             );
-            log::error("{}:{}", __FUNCTION__, __LINE__);
 
-            auto archiveResult = fs::SimpleTar::unpack(archiveData);
-            log::error("{}:{}", __FUNCTION__, __LINE__);
-            if (!archiveResult.isOk()) return Err(
-                "Failed to unpack archive, " + archiveResult.unwrapErr()
+
+#define geode level // call Err from this namespace instead of geode
+            GEODE_UNWRAP_INTO(
+                auto archive, fs::Unzip::create(archiveData)
+                .mapErr([](std::string err) { return fmt::format("Unable to read zip, {}", err); })
             );
-            log::error("{}:{}", __FUNCTION__, __LINE__);
+#undef geode
 
-            log::error("{}:{}", __FUNCTION__, __LINE__);
-            auto archive = archiveResult.unwrap();
-            log::info("Imported TAR archive with {} files", archive.files().size());
-
-            log::error("{}:{}", __FUNCTION__, __LINE__);
-            auto dump = archive.extract("_data.json");
-            log::error("{}:{}", __FUNCTION__, __LINE__);
+            auto dump = archive.extract("_data.json").unwrapOrDefault();
             auto data = std::move(
                 json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault()
             );
-            log::error("{}:{}", __FUNCTION__, __LINE__);
 
-            log::error("{}:{}", __FUNCTION__, __LINE__);
-            if (!level) return Err("Level ptr is null before update by json...");
-            log::error("{}:{}", __FUNCTION__, __LINE__);
-            if (level) updateLevelByJson(data, level);
-            log::error("{}:{}", __FUNCTION__, __LINE__);
-            if (!level) return Err("Level ptr is null after update by json...");
-            log::error("{}:{}", __FUNCTION__, __LINE__);
+            updateLevelByJson(data, level);
 
             //primary song id isnt 0
             if (level->m_songID) {
@@ -638,7 +477,9 @@ namespace level {
                 if (!cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
                     auto atzip = ps(fs::path(path).filename());
                     fs::create_directories(path.parent_path(), fs::err);
-                    fs::writeb(path, archive.extract(atzip));
+                    if (auto err = fs::writeb(path, archive.extract(atzip)).err()) Err(
+						err.value_or("unknown error")
+                    );
                 };
             }
 
@@ -654,7 +495,9 @@ namespace level {
                 if (!cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
                     auto atzip = ps(fs::path(path).filename());
                     fs::create_directories(path.parent_path(), fs::err);
-                    fs::writeb(path, archive.extract(atzip));
+                    if (auto err = fs::writeb(path, archive.extract(atzip)).err()) Err(
+                        err.value_or("unknown error")
+                    );
                 }
             }
 
@@ -668,7 +511,9 @@ namespace level {
                 if (!cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
                     auto atzip = ps(fs::path(path).filename());
                     fs::create_directories(path.parent_path(), fs::err);
-                    fs::writeb(path, archive.extract(atzip));
+                    if (auto err = fs::writeb(path, archive.extract(atzip)).err()) Err(
+                        err.value_or("unknown error")
+                    );
                 }
             }
 

@@ -173,22 +173,30 @@ namespace level {
     // Null if not imported, call getID to get path of .level file
     // Example: if (auto inf = isImported(level)) { auto path = inf->getID(); }
     auto isImported(sdk::Ref<GJGameLevel> level, std::string newPath = "") {
+        log::error("{}:{}", __FUNCTION__, __LINE__);
         //log::debug("{}({}, {})", __FUNCTION__, level.data(), json::Value(newPath).dump());
         //sdk::SceneManager::get()->keepAcrossScenes(level);
         auto tag = sdk::hash("is-imported-from-file");
 
         if (not newPath.empty()) {
+            log::error("{}:{}", __FUNCTION__, __LINE__);
             if (cocos::fileExistsInSearchPaths(newPath.c_str())) {
+                log::error("{}:{}", __FUNCTION__, __LINE__);
                 auto xd = cocos::CCNode::create();
                 xd->setID(newPath);
                 xd->setTag(tag);
+                log::error("{}:{}", __FUNCTION__, __LINE__);
                 if (level) {
+                    log::error("{}:{}", __FUNCTION__, __LINE__);
                     level->removeChildByTag(tag);
                     level->addChild(xd);
+                    log::error("{}:{}", __FUNCTION__, __LINE__);
                 }
+                log::error("{}:{}", __FUNCTION__, __LINE__);
             }
             else log::error("file '{}' does not exist", newPath);
         };
+        log::error("{}:{}", __FUNCTION__, __LINE__);
 
         return !level ? nullptr : level->getChildByTag(tag);
     };
@@ -326,7 +334,9 @@ namespace level {
         if (!level) return log::error("lvl upd by json fail, lvl is {}", level.data());
         log::error("{}:{}", __FUNCTION__, __LINE__);
         // for mle, helps store path in level json instead of level object
-        if (json.contains("file")) isImported(level, json["file"].asString().unwrapOr("invalid file value"));
+        if (json.contains("file")) isImported(
+            level, json.get("file").unwrapOr("").asString().unwrapOr("invalid file value")
+        );
         log::error("{}:{}", __FUNCTION__, __LINE__);
         //log::debug("{} update by json: {}", level, json.dump());
 #define asInt(member, ...) level->m_##member = __VA_ARGS__(json.get(#member"").unwrapOr(static_cast<int>(level->m_##member)).asInt().unwrapOr(static_cast<int>(level->m_##member)));

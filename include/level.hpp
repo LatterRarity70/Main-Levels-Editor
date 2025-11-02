@@ -598,13 +598,17 @@ namespace level {
             log::error("{}:{}", __FUNCTION__, __LINE__);
             auto dump = archive.extract("_data.json");
             log::error("{}:{}", __FUNCTION__, __LINE__);
-            auto data = json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault();
+            const auto& data = std::move(
+                json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault()
+            );
             log::error("{}:{}", __FUNCTION__, __LINE__);
 
             log::error("{}:{}", __FUNCTION__, __LINE__);
+            if (!level) return Err("Level ptr is null before update by json...");
+            log::error("{}:{}", __FUNCTION__, __LINE__);
             if (level) updateLevelByJson(data, level);
             log::error("{}:{}", __FUNCTION__, __LINE__);
-            if (!level) return Err("Level ptr nil after update by json...");
+            if (!level) return Err("Level ptr is null after update by json...");
             log::error("{}:{}", __FUNCTION__, __LINE__);
 
             //primary song id isnt 0

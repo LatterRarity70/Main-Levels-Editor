@@ -361,7 +361,7 @@ namespace level {
             data << "\t" R"("there is": "end!")" << std::endl;
             data << "}";
 
-            archive.add("_data.json", data.str());
+            archive.add("_data.json", data.str()).isOk();
 
             //primary song id isnt 0
             if (level->m_songID) {
@@ -477,7 +477,7 @@ namespace level {
                 if (!cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
                     auto atzip = ps(fs::path(path).filename());
                     fs::create_directories(path.parent_path(), fs::err);
-                    if (auto err = fs::writeb(path, archive.extract(atzip)).err()) Err(
+                    if (auto err = fs::writeb(path, archive.extract(atzip).unwrapOrDefault()).err()) Err(
 						err.value_or("unknown error")
                     );
                 };
@@ -495,7 +495,7 @@ namespace level {
                 if (!cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
                     auto atzip = ps(fs::path(path).filename());
                     fs::create_directories(path.parent_path(), fs::err);
-                    if (auto err = fs::writeb(path, archive.extract(atzip)).err()) Err(
+                    if (auto err = fs::writeb(path, archive.extract(atzip).unwrapOrDefault()).err()) Err(
                         err.value_or("unknown error")
                     );
                 }
@@ -511,7 +511,7 @@ namespace level {
                 if (!cocos::CCFileUtils::get()->isFileExist(ps(path).c_str())) {
                     auto atzip = ps(fs::path(path).filename());
                     fs::create_directories(path.parent_path(), fs::err);
-                    if (auto err = fs::writeb(path, archive.extract(atzip)).err()) Err(
+                    if (auto err = fs::writeb(path, archive.extract(atzip).unwrapOrDefault()).err()) Err(
                         err.value_or("unknown error")
                     );
                 }

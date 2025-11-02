@@ -11,8 +11,8 @@ namespace level {
     namespace str = sdk::string;
     namespace log = sdk::log;
     namespace fs {
-		using namespace std::filesystem;
-		using namespace sdk::file;
+        using namespace std::filesystem;
+        using namespace sdk::file;
         inline static auto err = std::error_code();
         auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
         auto writeb(path const& p, auto data = readb("")) { return writeBinarySafe(p, data); }
@@ -22,7 +22,8 @@ namespace level {
                 std::string filename;
                 std::vector<uint8_t> data;
                 File(std::string name, std::vector<uint8_t> d
-                ) : filename(std::move(name)), data(std::move(d)) {}
+                ) : filename(std::move(name)), data(std::move(d)) {
+                }
             };
         private:
             std::vector<File> m_files;
@@ -124,7 +125,7 @@ namespace level {
                     if (isZero) break;
                     if (std::memcmp(header->magic, "ustar", 5) != 0) return geode::Err(
                         "Invalid TAR format"
-                    ); 
+                    );
                     uint64_t fileSize = readOctal(header->size, sizeof(header->size));
                     if (fileSize > 500 * 1024 * 1024) return geode::Err("File too large");
                     std::string filename(header->filename, std::find(
@@ -159,13 +160,13 @@ namespace level {
         };
     }
     namespace cocos {
-		using namespace cocos2d;
-		using namespace sdk::cocos;
+        using namespace cocos2d;
+        using namespace sdk::cocos;
     }
 #define ps(...) str::pathToString(__VA_ARGS__)
 
     inline auto Err(auto str) {
-		log::error("{}", str);
+        log::error("{}", str);
         return sdk::Err("{}", str);
     }
 
@@ -478,7 +479,7 @@ namespace level {
 
             // makin data dump like that can save you from matjson errors related to random memory
             auto lvlJSON = jsonFromLevel(level);
-            std::stringstream data; 
+            std::stringstream data;
             data << "{" << std::endl;
             for (auto& [k, v] : lvlJSON) {
                 data << "\t\"" << k << "\": " << json::parse(v.dump()).unwrapOr(
@@ -551,42 +552,60 @@ namespace level {
         sdk::Ref<GJGameLevel> level = GJGameLevel::create()
     ) {
         try {
+            log::error(__FUNCTION__":{}", __LINE__);
             if (!level) return Err(
                 "Level ptr is null."
             );
+            log::error(__FUNCTION__":{}", __LINE__);
             if (!sdk::typeinfo_cast<GJGameLevel*>(level.data())) return Err(
                 "Level ptr is not GJGameLevel typed in RTTI."
             );
+            log::error(__FUNCTION__":{}", __LINE__);
 
+            log::error(__FUNCTION__":{}", __LINE__);
             from = sdk::CCFileUtils::get()->fullPathForFilename(ps(from).c_str(), 0).c_str();
 
+            log::error(__FUNCTION__":{}", __LINE__);
             isImported(level, ps(from));
 
+            log::error(__FUNCTION__":{}", __LINE__);
             auto importanterrc = std::error_code();
             auto sizech = fs::file_size(from, importanterrc);
-            if (importanterrc or !sizech) return Err((std::stringstream() << 
-                "Failed to check file size (" << sizech << "), " << 
+            if (importanterrc or !sizech) return Err((std::stringstream() <<
+                "Failed to check file size (" << sizech << "), " <<
                 std::move(importanterrc).message()
                 ).str());
+            log::error(__FUNCTION__":{}", __LINE__);
 
+            log::error(__FUNCTION__":{}", __LINE__);
             auto archiveData = fs::readb(from);
             if (archiveData.empty()) return Err(
                 "Failed to read file (size is 0)"
             );
+            log::error(__FUNCTION__":{}", __LINE__);
 
             auto archiveResult = fs::SimpleTar::unpack(archiveData);
-            if (!archiveResult) return Err(
+            log::error(__FUNCTION__":{}", __LINE__);
+            if (!archiveResult.isOk()) return Err(
                 "Failed to unpack archive, " + archiveResult.unwrapErr()
             );
+            log::error(__FUNCTION__":{}", __LINE__);
 
+            log::error(__FUNCTION__":{}", __LINE__);
             auto archive = archiveResult.unwrap();
             log::info("Imported TAR archive with {} files", archive.files().size());
 
+            log::error(__FUNCTION__":{}", __LINE__);
             auto dump = archive.extract("_data.json");
+            log::error(__FUNCTION__":{}", __LINE__);
             auto data = json::parse(std::string(dump.begin(), dump.end())).unwrapOrDefault();
+            log::error(__FUNCTION__":{}", __LINE__);
 
+            log::error(__FUNCTION__":{}", __LINE__);
             if (level) updateLevelByJson(data, level);
+            log::error(__FUNCTION__":{}", __LINE__);
             if (!level) return Err("Level ptr nil after update by json...");
+            log::error(__FUNCTION__":{}", __LINE__);
 
             //primary song id isnt 0
             if (level->m_songID) {

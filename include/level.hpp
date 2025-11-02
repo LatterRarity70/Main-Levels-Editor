@@ -14,8 +14,8 @@ namespace level {
         using namespace std::filesystem;
         using namespace sdk::file;
         inline static auto err = std::error_code();
-        auto readb(path const& p) { return readBinary(p).unwrapOrDefault(); }
-        auto writeb(path const& p, auto data = readb("")) { return writeBinarySafe(p, data); }
+        auto readb(path p) { return readBinary(p).unwrapOrDefault(); }
+        auto writeb(path p, auto data = readb("")) { return writeBinarySafe(p, data); }
     }
     namespace cocos {
         using namespace cocos2d;
@@ -336,7 +336,7 @@ namespace level {
 
 #define geode level // call Err from this namespace instead of geode
             GEODE_UNWRAP_INTO(
-                auto archive, fs::Zip::create()
+                auto archive, fs::Zip::create(to)
                 .mapErr([](std::string err) { return fmt::format("Unable to create zip, {}", err); })
             );
 #undef geode
@@ -345,7 +345,7 @@ namespace level {
             auto lvlJSON = jsonFromLevel(level);
             std::stringstream data;
             data << "{" << std::endl;
-            for (auto& [k, v] : lvlJSON) {
+            for (auto& [k, v] : std::move(lvlJSON)) {
                 data << "\t\"" << k << "\": " << json::parse(v.dump()).unwrapOr(
                     "invalid value (dump failed)"
                 ).dump(0) << "," << std::endl;
@@ -399,16 +399,6 @@ namespace level {
                     );
                 }
             }
-
-            auto packed = archive.getData();
-            if (auto err = fs::writeb(to, packed).err()) return Err(
-                err.value_or("Failed to write archive")
-            );
-
-            log::info(
-                "Exported level to {} ({} bytes)",
-                ps(to), packed.size()
-            );
 
             return sdk::Ok(std::move(lvlJSON));
         }
@@ -470,7 +460,7 @@ namespace level {
                     auto atzip = ps(fs::path(path).filename());
                     fs::create_directories(path.parent_path(), fs::err);
                     if (auto err = fs::writeb(path, archive.extract(atzip).unwrapOrDefault()).err()) Err(
-						err.value_or("unknown error")
+                        err.value_or("unknown error")
                     );
                 };
             }

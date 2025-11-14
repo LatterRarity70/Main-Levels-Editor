@@ -1,4 +1,20 @@
 
+#ifdef __ANDROID__
+#include <compare>
+
+namespace std::__detail {
+    template<typename _Tp, typename _Up = _Tp>
+    using __synth3way_t = std::weak_ordering;
+
+    template<typename _Tp, typename _Up>
+    constexpr std::weak_ordering __synth3way(const _Tp& __t, const _Up& __u)
+        noexcept(noexcept(__t < __u)) {
+        if (__t < __u) return std::weak_ordering::less;
+        if (__u < __t) return std::weak_ordering::greater;
+        return std::weak_ordering::equivalent;
+    }
+}
+#endif
 
 // the custom shared level format ".level" like ".gmd2", saves audio and almost ALL level data.
 // created by because of the limitations of ".gmd" format, made same way as that one
@@ -57,12 +73,12 @@ namespace mle {
     std::vector<int> getListingIDs(std::string val = "LEVELS_LISTING") {
         auto rtn = std::vector<int>();
 
-        for (auto entry : string::split(getMod()->getSettingValue<std::string>(val), ",")) {
+        for (auto entry : string::split(getMod()->getSettingValue<std::string>(val.c_str()), ",")) {
             //sequence
-            if (string::contains(entry, ":")) {
-                auto seq = string::split(entry, ":");
-                auto start = utils::numFromString<int>(seq[0]).unwrapOr(0);
-                auto end = utils::numFromString<int>(seq[1]).unwrapOr(0);
+            if (string::contains(entry.c_str(), ":")) {
+                auto seq = string::split(entry.c_str(), ":");
+                auto start = utils::numFromString<int>(seq[0].c_str()).unwrapOr(0);
+                auto end = utils::numFromString<int>(seq[1].c_str()).unwrapOr(0);
                 bool ew = start > end;//1:-22
                 for (int q = start; ew ? q != (end - 1) : q != (end + 1); ew ? --q : ++q) {
                     auto id = q;
@@ -456,7 +472,7 @@ class $modify(MLE_MusicDownloadManager, MusicDownloadManager) {
 		if (auto as = fmt::format("sfx.{}", id); existsInPaths(as.c_str())) {
 			return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0).c_str();
 		}
-		return MusicDownloadManager::pathForSFX(id);
+		return MusicDownloadManager::pathForSFX(id).c_str();
     };
     gd::string pathForSong(int id) {
         if (auto as = fmt::format("songs/{}", id); existsInPaths(as.c_str())) {
@@ -465,7 +481,7 @@ class $modify(MLE_MusicDownloadManager, MusicDownloadManager) {
 		if (auto as = fmt::format("song.{}", id); existsInPaths(as.c_str())) {
 			return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0).c_str();
 		}
-		return MusicDownloadManager::pathForSong(id);
+		return MusicDownloadManager::pathForSong(id).c_str();
     }
 };
 

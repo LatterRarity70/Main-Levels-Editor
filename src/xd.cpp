@@ -1,31 +1,13 @@
-
-#ifdef __ANDROID__
-#include <compare>
-
-namespace std::__detail {
-    template<typename _Tp, typename _Up = _Tp>
-    using __synth3way_t = std::weak_ordering;
-
-    template<typename _Tp, typename _Up>
-    constexpr std::weak_ordering __synth3way(const _Tp& __t, const _Up& __u)
-        noexcept(noexcept(__t < __u)) {
-        if (__t < __u) return std::weak_ordering::less;
-        if (__u < __t) return std::weak_ordering::greater;
-        return std::weak_ordering::equivalent;
-    }
-}
-#endif
-
 // the custom shared level format ".level" like ".gmd2", saves audio and almost ALL level data.
 // created by because of the limitations of ".gmd" format, made same way as that one
 #include <level.hpp>
-
-#include <cache.hpp>
 
 #include <Geode/Geode.hpp>
 #include <Geode/ui/GeodeUI.hpp>
 
 using namespace geode::prelude;
+
+#include <cache.hpp>
 
 #define REMOVE_UI getMod()->getSettingValue<bool>("REMOVE_UI")
 #define VERIFY_LEVEL_INTEGRITY getMod()->getSettingValue<bool>("VERIFY_LEVEL_INTEGRITY")

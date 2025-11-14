@@ -28,8 +28,10 @@ protected:
         }
         else {
             auto tarp = std::find(list.begin(), list.end(), target_id);
-            list.erase(tarp);
-            list.insert(tarp, target_id);
+            if (tarp != list.end()) {
+                list.erase(tarp);
+                list.insert(tarp, target_id);
+            }
         }
 
         std::string new_listing;

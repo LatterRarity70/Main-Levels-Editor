@@ -131,27 +131,27 @@ protected:
             };
         if (artists) {
             addInput("Name", 174.000f, "name", [id] -> matjson::Value {
-                return LT::nameForArtist(id()); }, "artists"_h
+                return LT::nameForArtist(id()).c_str(); }, "artists"_h
             );
             addInput("Newgrounds", 132.000f, "ng", [id] -> matjson::Value {
-                return LT::ngURLForArtist(id()); }, "artists"_h
+                return LT::ngURLForArtist(id()).c_str(); }, "artists"_h
             );
             addInput("YouTube", 90.000f, "yt", [id] -> matjson::Value {
-                return LT::ytURLForArtist(id()); }, "artists"_h
+                return LT::ytURLForArtist(id()).c_str(); }, "artists"_h
             );
             addInput("Facebook", 46.000f, "fb", [id] -> matjson::Value {
-                return LT::fbURLForArtist(id()); }, "artists"_h
+                return LT::fbURLForArtist(id()).c_str(); }, "artists"_h
             );
         }
         else {
             addInput("Track Filename", 174.000f, "file", [id] -> matjson::Value { 
-                return LT::getAudioFileName(id()); }
+                return LT::getAudioFileName(id()).c_str(); }
             );
             addInput("Track Title", 132.000f, "title", [id] -> matjson::Value { 
-                return LT::getAudioTitle(id()); }
+                return LT::getAudioTitle(id()).c_str(); }
             );
             addInput("Track URL", 90.000f, "url", [id] -> matjson::Value { 
-                return LT::urlForAudio(id()); }
+                return LT::urlForAudio(id()).c_str(); }
             );
             addInput("Artist ID", 46.000f, "artist", [id] -> matjson::Value { 
                 return LT::artistForAudio(id()); }

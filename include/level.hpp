@@ -334,9 +334,11 @@ namespace level {
             fs::create_directories(to.parent_path(), ignored_error);
             fs::remove(to, ignored_error);
 
+            auto isJSON = str::endsWith(ps(to), ".json");
+
 #define geode level // call Err from this namespace instead of geode
             GEODE_UNWRAP_INTO(
-                auto archive, fs::Zip::create(to)
+                auto archive, isJSON ? fs::Zip::create() : fs::Zip::create(to)
                 .mapErr([](std::string err) { return fmt::format("Unable to create zip, {}", err); })
             );
 #undef geode
@@ -353,7 +355,15 @@ namespace level {
             data << "\t" R"("there is": "end!")" << std::endl;
             data << "}";
 
-            archive.add("_data.json", data.str()).isOk();
+            if (isJSON) fs::writeStringSafe(to, data.str()).isOk();
+            else archive.add("_data.json", data.str()).isOk();
+
+            auto workingDir = to.parent_path();
+            if (str::endsWith(ps(workingDir), "levels")) workingDir = workingDir.parent_path();
+            if (isJSON) {
+				fs::create_directories(workingDir / "songs", ignored_error);
+                fs::create_directories(workingDir / "sfx", ignored_error);
+            };
 
             //primary song id isnt 0
             if (level->m_songID) {
@@ -368,6 +378,11 @@ namespace level {
                         err.value_or("unknown error")
                     );
                 }
+                //copy song for json export
+                if (isJSON) fs::copy_file(
+                    path, workingDir / "songs" / ps(fs::path(path).filename())
+                    , fs::copy_options::update_existing, fs::err
+                );
             }
 
             //fe the ids from list
@@ -383,6 +398,11 @@ namespace level {
                         err.value_or("unknown error")
                     );
                 };
+                //copy song for json export
+                if (isJSON) fs::copy_file(
+                    path, workingDir / "songs" / ps(fs::path(path).filename())
+                    , fs::copy_options::update_existing, fs::err
+                );
             }
 
             //fe the ids from list
@@ -398,6 +418,11 @@ namespace level {
                         err.value_or("unknown error")
                     );
                 }
+                //copy sfx for json export
+                if (isJSON) fs::copy_file(
+                    path, workingDir / "sfx" / ps(fs::path(path).filename())
+                    , fs::copy_options::update_existing, fs::err
+                );
             }
 
             return sdk::Ok(std::move(lvlJSON));

@@ -8,8 +8,8 @@
 		"ios": "2.2074"
 	},
 
-	"version": "v8.0.0-beta.17",
-	"id": "user95401.main-levels-editor",
+	"version": "v8.0.0-beta.18",
+	"id": "lr70.main-levels-editor",
 	"name": "Main Levels Editor",
 	"developers": [ "LatterRarity70" ],
 	"description": "customizable thing to change main levels uknowya",
@@ -55,6 +55,13 @@
 			"type": "string",
 			"filter": "0123456789,:",
 			"default": "1:22,-2,-1"
+		},
+		"AUDIO_LISTING": {
+			"name": "Audio Listing",
+			"description": "# IDs set for songs list.\nsame as level listing",
+			"type": "string",
+			"filter": "0123456789,:",
+			"default": "0:21,-1"
 		}
 	}
 

@@ -9,7 +9,7 @@ class MLE_LevelsInJSON : public cocos2d::CCObject, public std::unordered_map<int
     }
 public:
     static auto get() {
-        auto asd = typeinfo_cast<MLE_LevelsInJSON*>(LocalLevelManager::get()->getUserObject("MLE_LevelsInJSON"));
+        auto asd = geode::cast::typeinfo_cast<MLE_LevelsInJSON*>(LocalLevelManager::get()->getUserObject("MLE_LevelsInJSON"));
         if (!asd) {
 			asd = create();
 			LocalLevelManager::get()->setUserObject("MLE_LevelsInJSON", asd);

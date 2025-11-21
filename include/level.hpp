@@ -1,3 +1,4 @@
+#pragma once
 #include <Geode/Utils.hpp>
 
 // the custom shared level format ".level" like ".gmd2", saves audio and almost ALL level data.
@@ -14,8 +15,8 @@ namespace level {
         using namespace std::filesystem;
         using namespace sdk::file;
         inline static auto err = std::error_code();
-        auto readb(path p) { return readBinary(p).unwrapOrDefault(); }
-        auto writeb(path p, auto data = readb("")) { return writeBinarySafe(p, data); }
+        inline auto readb(path p) { return readBinary(p).unwrapOrDefault(); }
+        inline auto writeb(path p, auto data = readb("")) { return writeBinarySafe(p, data); }
     }
     namespace cocos {
         using namespace cocos2d;
@@ -30,7 +31,7 @@ namespace level {
 
     // Null if not imported, call getID to get path of .level file
     // Example: if (auto inf = isImported(level)) { auto path = inf->getID(); }
-    auto isImported(sdk::Ref<GJGameLevel> level, std::string newPath = "") {
+    inline auto isImported(sdk::Ref<GJGameLevel> level, std::string newPath = "") {
         //log::debug("{}({}, {})", __FUNCTION__, level.data(), json::Value(newPath).dump());
         //sdk::SceneManager::get()->keepAcrossScenes(level);
         auto tag = sdk::hash("is-imported-from-file");

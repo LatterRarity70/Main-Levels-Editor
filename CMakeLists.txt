@@ -11,7 +11,7 @@ endif()
 
 project(main)
 
-file(GLOB SOURCES src/*.cpp) # yea... i wanted to seperate code to multiple files but its so stupid to do
+file(GLOB SOURCES src/*.cpp) # hi
 message(${SOURCES})
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -1,3 +1,4 @@
+#pragma once
 #include <Geode/modify/LocalLevelManager.hpp>
 
 class MLE_LevelsInJSON : public cocos2d::CCObject, public std::unordered_map<int, matjson::Value> {

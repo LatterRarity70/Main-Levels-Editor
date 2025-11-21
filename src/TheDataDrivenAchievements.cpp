@@ -38,7 +38,7 @@ class $modify(MLE_AchievementManager, AchievementManager) {
         else {
             auto list = file::readString(CCFileUtils::get()->fullPathForFilename(
                 "achievements-sort.txt", 0
-            )).unwrapOr("");
+            ).c_str()).unwrapOr("");
             m_allAchievementsSorted->removeAllObjects();
             for (auto identifier : string::split(list, "\n")) {
                 auto dict = getAchievementsWithID(identifier.c_str());

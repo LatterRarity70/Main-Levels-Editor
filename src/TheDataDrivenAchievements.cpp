@@ -51,10 +51,13 @@ class $modify(MLE_AchievementManager, AchievementManager) {
         gd::string achievedDescription, gd::string unachievedDescription,
         gd::string icon, int limits
     ) {
+        if (!THE_DATA_DRIVEN_ACHIEVEMENTS) return AchievementManager::addAchievement(
+            identifier, title, achievedDescription, unachievedDescription, icon, limits
+        );
         if (this->getUserObject("is-data-file-generating"_spr)) {
             auto val = file::readJson(CCFileUtils::get()->fullPathForFilename(
                 "achievements.json", 0
-            )).unwrapOr(matjson::Value());
+            ).c_str()).unwrapOr(matjson::Value());
 
             auto entry = matjson::Value();
             entry["title"] = title.c_str();
@@ -67,7 +70,7 @@ class $modify(MLE_AchievementManager, AchievementManager) {
 
             file::writeToJson(CCFileUtils::get()->fullPathForFilename(
                 "achievements.json", 0
-            ), val);
+            ).c_str(), val);
         }
         else {
             log::debug("addAchievement: {}", identifier.c_str());
@@ -79,6 +82,7 @@ class $modify(MLE_AchievementManager, AchievementManager) {
         };
     }
     $override void addManualAchievements() {
+        if (!THE_DATA_DRIVEN_ACHIEVEMENTS) return AchievementManager::addManualAchievements();
         if (!existsInPaths("achievements.json")) { // generate default file
             file::writeStringSafe(getMod()->getConfigDir() / "achievements.json", "{}");
             setUserObject("is-data-file-generating"_spr, new CCObject());
@@ -89,7 +93,7 @@ class $modify(MLE_AchievementManager, AchievementManager) {
         else {
             auto val = file::readJson(CCFileUtils::get()->fullPathForFilename(
                 "achievements.json", 0
-            )).unwrapOr(matjson::Value());
+            ).c_str()).unwrapOr(matjson::Value());
 			for (auto& [identifier, entry] : val) {
                 AchievementManager::addAchievement(
                     identifier, entry["title"].asString().unwrapOr("err").c_str(),
@@ -115,6 +119,7 @@ class $modify(MLE_AchievementManager, AchievementManager) {
 class $modify(AchievementsLayerExt, AchievementsLayer) {
     $override void customSetup() {
         AchievementsLayer::customSetup();
+        if (!THE_DATA_DRIVEN_ACHIEVEMENTS) return;
         if (REMOVE_UI) return;
         if (auto menu = m_mainLayer->getChildByType<CCMenu>(0)) {
             auto reload = CCMenuItemExt::createSpriteExtraWithFrameName(

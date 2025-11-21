@@ -49,6 +49,11 @@
 			"type": "bool",
 			"default": true
 		},
+		"THE_DATA_DRIVEN_ACHIEVEMENTS": {
+			"name": "The Data Driven Achievements",
+			"type": "bool",
+			"default": true
+		},
 		"LEVELS_LISTING": {
 			"name": "Levels Listing",
 			"description": "# IDs set for level select page.\n\n## Format: \n<cy> - Single ID</c>: -1 (shows one level)\n<co> - Sequence</c>: 1:23 (levels from 1 to 23)\n<cr>Use commas to separate entries!</c>\n\n## Example: \n`\"`<cy>`1337`</c>`,`<co>`1:22`</c>`,`<cy>`-1`</c>,<cy>`-2`</c>`\"` will list level <cy>`1337`</c>, levels <co>`1` through `22`</c>, then <cy>`-1`</c> and <cy>`-2`</c>.\n<cr>\n```\n-1 is coming soon page, and -2, the tower.\n```\n</c>",

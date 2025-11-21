@@ -13,6 +13,7 @@ using namespace geode::prelude;
 #define REMOVE_UI getMod()->getSettingValue<bool>("REMOVE_UI")
 #define VERIFY_LEVEL_INTEGRITY getMod()->getSettingValue<bool>("VERIFY_LEVEL_INTEGRITY")
 #define REPLACE_DIFFICULTY_SPRITE getMod()->getSettingValue<bool>("REPLACE_DIFFICULTY_SPRITE")
+#define THE_DATA_DRIVEN_ACHIEVEMENTS getMod()->getSettingValue<bool>("THE_DATA_DRIVEN_ACHIEVEMENTS")
 #define TYPE_AND_ID_HACKS_FOR_SECRET_COINS getMod()->getSettingValue<bool>("TYPE_AND_ID_HACKS_FOR_SECRET_COINS")
 
 #define existsInPaths fileExistsInSearchPaths

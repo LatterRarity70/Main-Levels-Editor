@@ -18,6 +18,10 @@ class $modify(BoomScrollLayerLevelSelectExt, BoomScrollLayer) {
                 for (auto id : mle::getListingIDs()) unk3->addObject(
                     GameLevelManager::get()->getMainLevel(id, 0)
                 );
+                if (!unk3->count()) {
+					unk3->addObject(GameLevelManager::get()->getMainLevel(-1, 0));
+                    if (pages) for (auto page : CCArrayExt<CCNode>(pages)) page->setScale(0.f);
+                }
             };
         }
         return BoomScrollLayer::create(pages, unk1, unk2, unk3, delegate);

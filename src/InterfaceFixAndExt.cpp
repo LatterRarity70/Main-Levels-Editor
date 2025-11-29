@@ -59,7 +59,17 @@ class $modify(MLE_LevelSelectExt, LevelSelectLayer) {
                     [cp = Ref(cp), __this = Ref(this)]() {
                         if (!__this or !cp) return;
                         if (!__this->m_scrollLayer) return;
-                        int page = ; //pizdec
+                        Ref scroll = __this->m_scrollLayer;
+                        //pizdec
+                        auto page = scroll->m_page;
+                        if (scroll->m_dynamicObjects) {
+                            auto pages = scroll->m_dynamicObjects->count();
+                            if (page < 0) page += pages;
+                            else if (page >= pages) {
+                                auto fk = page / pages;
+								page -= fk * pages;
+                            }
+                        };
                         //update color if page changed
 						if (cp->getTag() != page) cp->setColorValue(__this->colorForPage(page));
                         //save color changes for page
@@ -90,8 +100,24 @@ class $modify(MLE_LevelSelectExt, LevelSelectLayer) {
 
 #if 0 // THAT SHIT IS TOO SCARY AND STRANGE TO TOUCH
     $override cocos2d::ccColor3B colorForPage(int page) {
-        page = std::max(0, page); //-1 is crashing.. looks like stack overflow thing idk
-        auto color = LevelSelectLayer::colorForPage(page);
+
+        //pizdec
+        if (auto scroll = this->m_scrollLayer) {
+            page = scroll->m_page;
+            if (scroll->m_dynamicObjects) {
+                auto pages = scroll->m_dynamicObjects->count();
+                if (page < 0) page += pages;
+                else if (page >= pages) {
+                    auto fk = page / pages;
+                    page -= fk * pages;
+                }
+            };
+        };
+
+        //still not callable even
+        auto color = LevelSelectLayer::colorForPage(
+            std::max(0, page)
+        );
 
         //super silent mode
 		auto colors = file::readJson(CCFileUtils::get()->fullPathForFilename(

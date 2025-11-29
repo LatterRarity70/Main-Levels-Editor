@@ -57,7 +57,13 @@ namespace mle {
     inline std::vector<int> getListingIDs(std::string val = "LEVELS_LISTING") {
         auto rtn = std::vector<int>();
 
-        for (auto entry : string::split(getMod()->getSettingValue<std::string>(val.c_str()), ",")) {
+        auto list = file::readString(CCFileUtils::get()->fullPathForFilename(
+            (val + ".txt").c_str(), 0
+        ).c_str()).unwrapOr(
+            getMod()->getSettingValue<std::string>(val.c_str())
+        );
+
+        for (auto entry : string::split(list, ",")) {
             //sequence
             if (string::contains(entry.c_str(), ":")) {
                 auto seq = string::split(entry.c_str(), ":");

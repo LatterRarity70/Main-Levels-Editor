@@ -149,49 +149,122 @@ That will be used in next LevelSelectLayer objects to fix page select stuff
 #include <Geode/modify/LevelPage.hpp>
 class $modify(MLE_LevelPageExt, LevelPage) {
 
-    void customSetup(float) { //dynamic page update function is hell
-        Ref level = this->m_level;
-        if (!level) return;
-        if (!this->getChildByType<GJGameLevel>(0)) this->addChild(level);
-        else {
-            if (level == this->getChildByType<GJGameLevel>(0)) return;
-            else {
-                this->getChildByType<GJGameLevel>(0)->removeFromParent();
-                this->addChild(level);
-            }
-        }
-        //difficultySprite
-        if (REPLACE_DIFFICULTY_SPRITE) if (auto difficultySprite = typeinfo_cast<CCSprite*>(this->getChildByIDRecursive("difficulty-sprite"))) {
+    void updateDynamicPage(GJGameLevel* pLevel) { //dynamic page update function is hell
+        Ref level = pLevel;
+        LevelPage::updateDynamicPage(level);
+
+        //REPLACE_DIFFICULTY_SPRITE really
+        if (REPLACE_DIFFICULTY_SPRITE) if (auto difficultySprite = typeinfo_cast<CCSprite*>(
+            this->getChildByIDRecursive("difficulty-sprite")
+        )) {
             auto diffID = static_cast<int>(level->m_difficulty);
-            if (difficultySprite->getTag() != diffID) {
-                difficultySprite->setTag(diffID);
-                auto sz = difficultySprite->getContentSize();
-                auto frameName = fmt::format("diffIcon_{:02d}_btn_001.png", diffID);
-                if (CCSpriteFrameCache::get()->m_pSpriteFrames->objectForKey(frameName.c_str())) {
-                    auto frame = CCSpriteFrameCache::get()->spriteFrameByName(frameName.c_str());
-                    if (frame) difficultySprite->setDisplayFrame(frame);
-                }
-                else {
-                    auto image = CCSprite::create(frameName.c_str());
-                    if (image) difficultySprite->setDisplayFrame(image->displayFrame());
-                }
-                limitNodeSize(difficultySprite, sz, 999.f, 0.1f);
+
+            auto sz = difficultySprite->getContentSize(); //limitNodeSize
+
+            auto frameName = fmt::format("diffIcon_{:02d}_btn_001.png", diffID);
+            if (CCSpriteFrameCache::get()->m_pSpriteFrames->objectForKey(frameName.c_str())) {
+                auto frame = CCSpriteFrameCache::get()->spriteFrameByName(frameName.c_str());
+                if (frame) difficultySprite->setDisplayFrame(frame);
             }
+            else {
+                auto image = CCSprite::create(frameName.c_str());
+                if (image) difficultySprite->setDisplayFrame(image->displayFrame());
+            }
+
+            limitNodeSize(difficultySprite, sz, 999.f, 0.1f);
         }
+
         //debg
         if (!REMOVE_UI) {
             while (auto a = this->getChildByTag("mle-id-debug"_h)) a->removeFromParent();
-            this->addChild(SimpleTextArea::create(fmt::format(
-                "                                                                       "
-                "id: {}\n \n \n \n \n \n \n "
+            auto text = CCLabelBMFont::create(fmt::format(
+                "id: {}, {}"
                 , level->m_levelID.value()
-            )), 1, "mle-id-debug"_h);
+                , level::isImported(level)
+                ? "was imported (editable)"
+                : "not imported (read-only)"
+            ).c_str(), "geode.loader/mdFontMono.fnt");
+            text->setPosition(this->getContentSize() / 2);
+            text->setPositionY(this->getContentHeight() - 46);
+            text->setScale(0.6f);
+            this->addChild(text, 1, "mle-id-debug"_h);
         }
     }
 
     $override bool init(GJGameLevel* level)  {
 		if (!LevelPage::init(level)) return false;
-		this->schedule(schedule_selector(MLE_LevelPageExt::customSetup));
+
+        if (!REMOVE_UI) if (Ref levelMenu = m_levelMenu) {
+            if (auto editLevel = CCMenuItemExt::createSpriteExtraWithFrameName(
+                "GJ_editBtn_001.png", 0.35f, [_this = Ref(this)](void*) {
+                    if (!_this) return;
+                    Ref level = _this->m_level;
+                    if (!level) return;
+                    if (!level::isImported(level)) return (void)createQuickPopup(
+                        "Not editable", 
+                        """""Please export level as file first!" 
+                        "\n""1. Play this level and pause it"
+                        "\n""2. Export using Main Levels Editor Menu"
+                        "\n""- - -"
+                        "\n""This mod loads levels according to list of IDs, trying to find {id}.level or {id}.json files"
+                        , "OK", nullptr, nullptr
+                    );
+                    switchToScene(LevelEditorLayer::create(level, false));
+                }
+            )) {
+                editLevel->setID("editLevel"_spr);
+                levelMenu->addChild(editLevel);
+
+                auto view = CCDirector::get()->getVisibleSize();
+                auto viewCenter = view / 2;
+                auto worldPos = viewCenter + CCPointMake((view.width / 2) - 68, 90);
+                editLevel->setPosition(levelMenu->convertToNodeSpace(worldPos));
+            };
+            if (auto deleteLevel = CCMenuItemExt::createSpriteExtraWithFrameName(
+                "GJ_resetBtn_001.png", 0.9f, [_this = Ref(this)](void*) {
+                    if (!_this) return;
+                    Ref level = _this->m_level;
+                    if (!level) return;
+                    createQuickPopup(
+                        "Remove this level?",
+                        "This will change level listing config and file of level (if exists)", 
+                        "No", "Yes", [_this, level](void*, bool Yes) {
+							if (!Yes) return;
+							if (!level) return;
+                            auto page = 0;
+                            auto gotPage = false;
+                            std::vector<int> list;
+                            for (auto p : MLE::getLevelIDs()) {
+                                if (p == level->m_levelID) {
+									gotPage = true;
+                                    continue;
+                                }
+                                list.push_back(p);
+                                if (!gotPage) page++;
+							}
+                            MLE::updateListingIDs(list);
+                            if (auto import = level::isImported(level)) {
+                                auto err = std::error_code();
+                                std::filesystem::remove_all(import->getID(), err);
+                            };
+                            if (Ref a = CCScene::get()->getChildByType<LevelSelectLayer>(0)) {
+                                a->removeFromParent();
+                                MLE_LevelSelectExt::ForceNextTo = page;
+                                CCScene::get()->addChild(LevelSelectLayer::create(page));
+                            }
+                        }
+                    );
+                }
+            )) {
+                deleteLevel->setID("deleteLevel"_spr);
+                levelMenu->addChild(deleteLevel);
+                auto view = CCDirector::get()->getVisibleSize();
+                auto viewCenter = view / 2;
+                auto worldPos = viewCenter + CCPointMake((view.width / 2) - 68, 60);
+                deleteLevel->setPosition(levelMenu->convertToNodeSpace(worldPos));
+            };
+        }
+
 		return true;
 	}
 
@@ -393,14 +466,41 @@ class $modify(MLE_PauseExt, PauseLayer) {
     $override void customSetup() {
         PauseLayer::customSetup();
 
-        if (!REMOVE_UI) {
-            auto menu = CCMenu::create();
-            menu->setID("menu"_spr);
-            menu->setScale(0.75f);
-            menu->setAnchorPoint(CCPointZero);
-            menu->addChild(MainLevelsEditorMenu::createButtonForMe());
-            addChildAtPosition(menu, Anchor::BottomRight, { -25.f, 25.f }, false);
-            menu->setZOrder(228);
-        }
+        if (!REMOVE_UI) queueInMainThread(
+            [aw = Ref(this)] {
+                if (!aw) return;
+                if (auto menu = aw->querySelector("right-button-menu")) {
+                    if (auto editLevel = CCMenuItemExt::createSpriteExtraWithFrameName(
+                        "GJ_editBtn_001.png", 0.35f, [aw](void*) {
+                            Ref level = GJBaseGameLayer::get()->m_level;
+                            if (!level) return;
+                            if (!level::isImported(level)) return (void)createQuickPopup(
+                                "Not editable",
+                                """""Please export level as file first using Main Levels Editor Menu!"
+                                "\n""This mod loads levels according to list of IDs, trying to find {id}.level or {id}.json files"
+                                , "OK", nullptr, nullptr
+                            ); 
+                            aw->goEdit();
+                        }
+                    )) {
+                        editLevel->setID("editLevel"_spr);
+                        menu->addChild(editLevel);
+                    };
+                    if (auto image = geode::createModLogo(getMod())) {
+                        CCNode* ref = menu->getChildByType<CCMenuItem>(0);
+                        if (!ref) ref = menu;
+                        limitNodeWidth(image, ref->getContentWidth(), 99.f, 0.1f);
+                        auto item = CCMenuItemExt::createSpriteExtra(
+                            image, [](void*) {
+                                MainLevelsEditorMenu::create()->show();
+                            }
+                        );
+                        item->setID("menu-button"_spr);
+                        menu->addChild(item);
+                    }
+                    menu->updateLayout();
+                };
+            }
+        );
     };
 };

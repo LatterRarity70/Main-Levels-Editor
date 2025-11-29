@@ -73,7 +73,6 @@ class $modify(MLE_AchievementManager, AchievementManager) {
             ).c_str(), val);
         }
         else {
-            log::debug("addAchievement: {}", identifier.c_str());
             AchievementManager::addAchievement(
                 identifier, title,
                 achievedDescription, unachievedDescription,

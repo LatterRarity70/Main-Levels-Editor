@@ -15,7 +15,7 @@ protected:
             level->m_levelID.value()
         );
 
-        auto list = mle::getListingIDs();
+        auto list = MLE::getListingIDs();
 
         if (add_new) {
             auto endp = std::find(list.begin(), list.end(), -1);
@@ -34,23 +34,7 @@ protected:
             }
         }
 
-        std::string new_listing;
-        for (auto it = list.begin(); it != list.end(); ) {
-            int start = *it, end = start;
-            while (++it != list.end() && *it == end + 1) end++;
-
-            if (end - start < 2) { // 1-2 IDs
-                new_listing += fmt::format("{}{}", start, end > start ? fmt::format(",{}", end) : "");
-            }
-            else { // 3+
-                new_listing += fmt::format("{}:{}", start, end);
-            }
-            new_listing += ",";
-        }
-        if (!new_listing.empty()) new_listing.pop_back(); // remove last comma)
-
-        Mod::get()->setSettingValue<std::string>("LEVELS_LISTING", new_listing);
-        Mod::get()->saveData().isOk();
+        MLE::updateListingIDs(list);
 
         return target_id;
     }
@@ -499,8 +483,8 @@ protected:
                     );
                     fs::create_directories(pack, err);
                     //copy levels
-                    for (auto id : mle::getListingIDs()) {
-                        if (auto impinfo = level::isImported(mle::tryLoadFromFiles(id))) {
+                    for (auto id : MLE::getListingIDs()) {
+                        if (auto impinfo = level::isImported(MLE::tryLoadFromFiles(id))) {
                             fs::copy_file(impinfo->getID(), pack / fmt::format("{}.level", id), err);
                         }
                     };
@@ -589,8 +573,8 @@ protected:
                     auto unzip = std::move(__unzip).unwrap();
                     unzip.extractAllTo(workdir).isOk();
                     //copy levels
-                    for (auto id : mle::getListingIDs()) {
-                        if (auto impinfo = level::isImported(mle::tryLoadFromFiles(id))) {
+                    for (auto id : MLE::getListingIDs()) {
+                        if (auto impinfo = level::isImported(MLE::tryLoadFromFiles(id))) {
                             fs::copy_file(impinfo->getID(), workdir / "resources" / fmt::format("{}.level", id), err);
                         }
                     };
@@ -612,7 +596,10 @@ protected:
                             auto read = file::readJson(path).unwrapOrDefault();
                             read.set("id", modid);
                             read.set("name", "\tMLE Custom Package\n");
-                            read.set("developer", GameManager::get()->m_playerName.c_str());
+                            read.set("developers", matjson::parse(fmt::format(
+                                "[ \"{}\", \"{}\" ]", getMod()->getDevelopers()[0].c_str(),
+                                GameManager::get()->m_playerName.c_str()
+                            )).unwrapOrDefault());
                             read.set("tags", matjson::parse(R"([ "offline", "content", "enhancement" ])").unwrapOrDefault());
                             read.set("incompatibilities", matjson::parse(
                                 R"([{"id": ")" + getMod()->getID() + R"(", "version": "*", "importance": "conflicting"}])"

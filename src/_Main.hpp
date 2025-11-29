@@ -19,7 +19,7 @@ using namespace geode::prelude;
 #define existsInPaths fileExistsInSearchPaths
 
 // Some helper functions
-namespace mle {
+namespace MLE {
 
     inline GJGameLevel* tryLoadFromFiles(GJGameLevel* level, int customLvlID = 0) {
         auto levelID = customLvlID ? customLvlID : level->m_levelID;
@@ -52,6 +52,35 @@ namespace mle {
 
     inline GJGameLevel* tryLoadFromFiles(int customLvlID) {
         return tryLoadFromFiles(GJGameLevel::create(), customLvlID);
+    }
+
+    inline std::string createListingIDs(const std::vector<int>& list) {
+        std::string new_listing;
+        for (auto it = list.begin(); it != list.end(); ) {
+            int start = *it, end = start;
+            while (++it != list.end() && *it == end + 1) end++;
+
+            if (end - start < 2) { // 1-2 IDs
+                new_listing += fmt::format("{}{}", start, end > start ? fmt::format(",{}", end) : "");
+            }
+            else { // 3+
+                new_listing += fmt::format("{}:{}", start, end);
+            }
+            new_listing += ",";
+        }
+        if (!new_listing.empty()) new_listing.pop_back(); // remove last comma)
+        return new_listing;
+    }
+
+    inline void updateListingIDs(const std::vector<int>& list, std::string val = "LEVELS_LISTING") {
+        if (cocos::fileExistsInSearchPaths((val + ".txt").c_str())) file::writeStringSafe(
+            CCFileUtils::get()->fullPathForFilename((val + ".txt").c_str(), 0).c_str(),
+            createListingIDs(list)
+        );
+        else {
+            Mod::get()->setSettingValue<std::string>(val, createListingIDs(list));
+            Mod::get()->saveData().isOk();
+        }
     }
 
     inline std::vector<int> getListingIDs(std::string val = "LEVELS_LISTING") {

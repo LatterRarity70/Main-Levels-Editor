@@ -90,14 +90,14 @@ class $modify(MLE_LocalLevelManager, LocalLevelManager) {
             else log::info("No backup file found, using current settings");
         }
 
-        log::debug("Loading .level files for list: {}", mle::getListingIDs());
-        for (auto id : mle::getListingIDs()) {
+        log::debug("Loading .level files for list: {}", MLE::getListingIDs());
+        for (auto id : MLE::getListingIDs()) {
 
             log::debug("Loading level {}", id);
 
             auto level = GJGameLevel::create();
             level->m_levelName = "___level_was_not_loaded";
-            level = mle::tryLoadFromFiles(level, id);
+            level = MLE::tryLoadFromFiles(level, id);
 
             log::debug("{}", level->m_levelName.c_str());
 

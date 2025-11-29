@@ -15,7 +15,7 @@ class $modify(BoomScrollLayerLevelSelectExt, BoomScrollLayer) {
         if (delegate and unk3) {
             if (exact_cast<LevelSelectLayer*>(delegate)) { //is created for LevelSelectLayer
                 unk3->removeAllObjects();
-                for (auto id : mle::getListingIDs()) unk3->addObject(
+                for (auto id : MLE::getListingIDs()) unk3->addObject(
                     GameLevelManager::get()->getMainLevel(id, 0)
                 );
                 if (!unk3->count()) {
@@ -40,7 +40,7 @@ class $modify(MLE_BoomListViewExt, BoomListView) {
 
         entries->removeAllObjects();
 
-        for (auto id : mle::getAudioIDs()) {
+        for (auto id : MLE::getAudioIDs()) {
             auto obj = SongObject::create(id);
             if (obj) entries->addObject(obj);
         }

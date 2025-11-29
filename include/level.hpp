@@ -65,12 +65,8 @@ namespace level {
         json.set("updateDate", std::string_view(level->m_updateDate.c_str())); //["updateDate"] = std::string_view(level->m_updateDate.c_str());
         json.set("lockedEditorLayers", std::string_view(level->m_lockedEditorLayers.c_str())); //["lockedEditorLayers"] = std::string_view(level->m_lockedEditorLayers.c_str());
         json.set("savedCameraPositions", std::string_view(level->m_savedCameraPositions.c_str())); //["savedCameraPositions"] = std::string_view(level->m_savedCameraPositions.c_str());
-        { // cocos::CCPoint m_previewLock
-            json::Value pt;
-            pt.set("x", level->m_previewLock.x); //["x"] = level->m_previewLock.x;
-            pt.set("y", level->m_previewLock.y); //["y"] = level->m_previewLock.y;
-            json.set("previewLock", pt); //["previewLock"] = pt;
-        }
+        json.set("previewLock.x", level->m_previewLock.x);
+        json.set("previewLock.y", level->m_previewLock.y);
         json.set("userID", level->m_userID.value()); //["userID"] = level->m_userID.value();
         json.set("accountID", level->m_accountID.value()); //["accountID"] = level->m_accountID.value();
         json.set("difficulty", static_cast<int>(level->m_difficulty)); //["difficulty"] = static_cast<int>(level->m_difficulty);
@@ -147,12 +143,8 @@ namespace level {
         json.set("levelNotDownloaded", level->m_levelNotDownloaded); //"["levelNotDownloaded"] = level->m_levelNotDownloaded;
         json.set("requiredCoins", level->m_requiredCoins); //"["requiredCoins"] = level->m_requiredCoins;
         json.set("isUnlocked", level->m_isUnlocked); //"["isUnlocked"] = level->m_isUnlocked;
-        { // cocos::CCPoint m_lastCameraPos
-            json::Value pt;
-            pt.set("x", level->m_lastCameraPos.x); //"["x"] = level->m_lastCameraPos.x;
-            pt.set("y", level->m_lastCameraPos.y); //"["y"] = level->m_lastCameraPos.y;
-            json.set("lastCameraPos", pt); //["lastCameraPos"] = pt;
-        }
+        json.set("lastCameraPos.x", level->m_lastCameraPos.x);
+        json.set("lastCameraPos.y", level->m_lastCameraPos.y);
         json.set("lastEditorZoom", level->m_lastEditorZoom); //["lastEditorZoom"] = level->m_lastEditorZoom;
         json.set("lastBuildTab", level->m_lastBuildTab); //["lastBuildTab"] = level->m_lastBuildTab;
         json.set("lastBuildPage", level->m_lastBuildPage); //["lastBuildPage"] = level->m_lastBuildPage;
@@ -202,11 +194,8 @@ namespace level {
         asString(updateDate);// = json["updateDate"].asString().unwrapOr().c_str();
         asString(lockedEditorLayers);// = json["lockedEditorLayers"].asString().unwrapOr().c_str();
         asString(savedCameraPositions);// = json["savedCameraPositions"].asString().unwrapOr().c_str();
-        { // cocos::CCPoint m_previewLock
-            json::Value pt = json["previewLock"];
-            asDouble(previewLock.x);// = pt["x"].asDouble().unwrapOr();
-            asDouble(previewLock.y);// = pt["y"].asDouble().unwrapOr();
-        }
+        asDouble(previewLock.x);// = pt["x"].asDouble().unwrapOr();
+        asDouble(previewLock.y);// = pt["y"].asDouble().unwrapOr();
         asSeed(userID);// = json["userID"].asInt().unwrapOr();
         asSeed(accountID);// = json["accountID"].asInt().unwrapOr();
         asInt(difficulty, static_cast<GJDifficulty>);// = (json["difficulty"].asInt().unwrapOr());
@@ -283,11 +272,8 @@ namespace level {
         asBool(levelNotDownloaded);// = json["levelNotDownloaded"].asBool().unwrapOr();
         asInt(requiredCoins);// = json["requiredCoins"].asInt().unwrapOr();
         asBool(isUnlocked);// = json["isUnlocked"].asBool().unwrapOr();
-        { // cocos::CCPoint m_lastCameraPos
-            json::Value pt = json["lastCameraPos"];
-            asDouble(lastCameraPos.x);// = pt["x"].asDouble().unwrapOr();
-            asDouble(lastCameraPos.y);// = pt["y"].asDouble().unwrapOr();
-        }
+        asDouble(lastCameraPos.x);// = pt["x"].asDouble().unwrapOr();
+        asDouble(lastCameraPos.y);
         asDouble(lastEditorZoom);// = json["lastEditorZoom"].asDouble().unwrapOr();
         asInt(lastBuildTab);// = json["lastBuildTab"].asInt().unwrapOr();
         asInt(lastBuildPage);// = json["lastBuildPage"].asInt().unwrapOr();

@@ -157,23 +157,26 @@ protected:
 
             auto keyValInput = TextInput::create(132.f, key, keyLabel->getFont());
 
+            keyValInput->setFilter(" !\"#$ % &'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+            keyValInput->getInputNode()->m_allowedChars = " !\"#$ % &'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
             keyValInput->setString(asd.dump());
-            keyValInput->setCallback([=](auto str) mutable { //INPUT CALLBACK
+            keyValInput->setCallback(
+                [=](auto str) mutable { //INPUT CALLBACK
 
-                keyInputErr->setString("");
+                    keyInputErr->setString("");
 
-                auto parse = matjson::parse(str);
-                if (parse.isOk()) {
-                    (*json.get())[key] = parse.unwrapOrDefault();
-                    level::updateLevelByJson(json, editor->m_level);
+                    auto parse = matjson::parse(str);
+                    if (parse.isOk()) {
+                        (*json.get())[key] = parse.unwrapOrDefault();
+                        level::updateLevelByJson(json, editor->m_level);
+                    }
+                    else {
+                        if (parse.err()) keyInputErr->setString(
+                            ("parse err: " + parse.err().value().message).c_str()
+                        );
+                    };
                 }
-                else {
-                    if (parse.err()) keyInputErr->setString(
-                        ("parse err: " + parse.err().value().message).c_str()
-                    );
-                };
-
-                }); //INPUT CALLBACK
+            ); //INPUT CALLBACK
 
             auto bgSize = keyValInput->getBGSprite()->getContentSize();
             keyValInput->getBGSprite()->setSpriteFrame(CCSprite::create("groundSquare_18_001.png")->displayFrame());

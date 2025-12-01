@@ -200,8 +200,7 @@ protected:
         CCMenuItemSpriteExtra* save_level = CCMenuItemExt::createSpriteExtra(
             SimpleTextArea::create("SAVE LEVEL")->getLines()[0],
             [editor, related_File](CCNode* item) {
-                auto pause = EditorPauseLayer::create(editor);
-                if (!item->getTag()) pause->saveLevel();
+                EditorPauseLayer::create(editor)->saveLevel();
                 if (auto err = level::exportLevelFile(editor->m_level, related_File).err())
                     Notification::create(
                         "failed to export level: " + err.value_or("unknown error"),

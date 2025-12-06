@@ -18,12 +18,12 @@ The .level file is a ZIP archive of:
 
 To replace level:
 - export your level in .level file
-- rename it to `{id}.level` (like 1.level)
+- rename it to `{123273888}.level` (like 1.level)
 - put it to mod config folder (or any other search paths of game)
 - reload game
 
 To add as new one:
 - export level
 - copy its id (f.e. 1337)
-- add id to level listing setting (1337,1-22,-2,-1)
+- add id to level listing setting (123,273,888,1-22,-2,-1)
 - reload game

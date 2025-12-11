@@ -154,9 +154,7 @@ class $modify(MLE_LevelPageExt, LevelPage) {
         LevelPage::updateDynamicPage(level);
 
         //REPLACE_DIFFICULTY_SPRITE really
-        if (REPLACE_DIFFICULTY_SPRITE) if (auto difficultySprite = typeinfo_cast<CCSprite*>(
-            this->getChildByIDRecursive("difficulty-sprite")
-        )) {
+        if (REPLACE_DIFFICULTY_SPRITE) if (auto difficultySprite = m_difficultySprite) {
             auto diffID = static_cast<int>(level->m_difficulty);
 
             auto sz = difficultySprite->getContentSize(); //limitNodeSize

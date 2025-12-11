@@ -84,7 +84,9 @@ class $modify(MLE_AchievementManager, AchievementManager) {
         if (!THE_DATA_DRIVEN_ACHIEVEMENTS) return AchievementManager::addManualAchievements();
         if (!existsInPaths("achievements.json")) { // generate default file
             file::writeStringSafe(getMod()->getConfigDir() / "achievements.json", "{}");
-            setUserObject("is-data-file-generating"_spr, new CCObject());
+            auto object = new CCObject();
+            object->autorelease();
+            setUserObject("is-data-file-generating"_spr, object);
             AchievementManager::addManualAchievements();
             setUserObject("is-data-file-generating"_spr, nullptr);
             addManualAchievements();

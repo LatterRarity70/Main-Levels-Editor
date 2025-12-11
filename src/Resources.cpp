@@ -157,12 +157,12 @@ class $modify(MLE_LocalLevelManager, LocalLevelManager) {
 
 #include <Geode/modify/LoadingLayer.hpp>
 class $modify(MLE_LoadingLayer, LoadingLayer) {
-    static inline int AFTER_LOADING = true;
+    static inline bool AFTER_LOADING = true;
     void reloadc(float) { LocalLevelManager::get()->init(); };
     $override bool init(bool a) {
         if (!LoadingLayer::init(a)) return false;
         this->scheduleOnce(schedule_selector(MLE_LoadingLayer::reloadc), 0.25f);
-        AFTER_LOADING = 1;
+        AFTER_LOADING = true;
         return true;
     }
 };
@@ -172,7 +172,8 @@ class $modify(MLE_MenuLayer, MenuLayer) {
     $override bool init() {
         if (!MenuLayer::init()) return false;
         //add frames form known mods
-        if (MLE_LoadingLayer::AFTER_LOADING--) {
+        if (MLE_LoadingLayer::AFTER_LOADING) {
+            MLE_LoadingLayer::AFTER_LOADING = false;
             auto freeDiffID = 10;
             auto diffFrameExists = true;
             auto diffSpriteExists = true;

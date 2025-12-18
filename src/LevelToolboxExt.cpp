@@ -58,22 +58,30 @@ LEVEL INTEGRITY VERIFY BYPASS
 #include <Geode/modify/MusicDownloadManager.hpp>
 class $modify(MLE_MusicDownloadManager, MusicDownloadManager) {
     gd::string pathForSFX(int id) {
-        if (auto as = fmt::format("sfx/{}", id); existsInPaths(as.c_str())) {
-            return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0).c_str();
+        //log::debug("{}:{}({})", __func__, __LINE__, id);
+        std::filesystem::path ref = MusicDownloadManager::pathForSFX(id);
+        if (auto as = fmt::format("sfx/{}{}", id, ref.extension()); existsInPaths(as.c_str())) {
+            return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0);
         }
-        if (auto as = fmt::format("sfx.{}", id); existsInPaths(as.c_str())) {
-            return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0).c_str();
+        if (auto as = fmt::format("sfx.{}{}", id, ref.extension()); existsInPaths(as.c_str())) {
+            return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0);
         }
-        return MusicDownloadManager::pathForSFX(id).c_str();
-    };
+        return MusicDownloadManager::pathForSFX(id);
+    }; 
+    
     gd::string pathForSong(int id) {
-        if (auto as = fmt::format("songs/{}", id); existsInPaths(as.c_str())) {
-            return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0).c_str();
+        //log::debug("{}:{}({})", __func__, __LINE__, id);
+        if (auto sc = CCScene::get())
+            if (sc->getChildByType<LoadingLayer>(0))
+                return MusicDownloadManager::pathForSong(id);
+        std::filesystem::path ref = MusicDownloadManager::pathForSong(id);
+        if (auto as = fmt::format("songs/{}{}", id, ref.extension()); existsInPaths(as.c_str())) {
+            return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0);
         }
-        if (auto as = fmt::format("song.{}", id); existsInPaths(as.c_str())) {
-            return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0).c_str();
+        if (auto as = fmt::format("song.{}{}", id, ref.extension()); existsInPaths(as.c_str())) {
+            return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0);
         }
-        return MusicDownloadManager::pathForSong(id).c_str();
+        return MusicDownloadManager::pathForSong(id);
     }
 };
 
@@ -90,9 +98,10 @@ class $modify(MLE_LevelTools, LevelTools) {
     };
 
     $override static gd::string getAudioFileName(int p0) {
+        //log::debug("{}:{}({})", __func__, __LINE__, p0);
 
-        if (auto as = fmt::format("audio.{}", 0); existsInPaths(as.c_str())) return as.c_str();
-        if (auto as = fmt::format("audio/{}", 0); existsInPaths(as.c_str())) return as.c_str();
+        if (auto as = fmt::format("audio.{}.mp3", p0); existsInPaths(as.c_str())) return as.c_str();
+        if (auto as = fmt::format("audio/{}.mp3", p0); existsInPaths(as.c_str())) return as.c_str();
 
         if (auto a = audio(p0); a.isOk())
             if (a.unwrap().contains("file"))
@@ -101,12 +110,14 @@ class $modify(MLE_LevelTools, LevelTools) {
         return LevelTools::getAudioFileName(p0).c_str();
     };
     $override static gd::string getAudioTitle(int p0) {
+        //log::debug("{}:{}({})", __func__, __LINE__, p0);
         if (auto a = audio(p0); a.isOk())
             if (a.unwrap().contains("title"))
                 return a.unwrapOr("").get("title").unwrap().asString().unwrapOr("").c_str();
         return LevelTools::getAudioTitle(p0).c_str();
     };
     $override static gd::string urlForAudio(int p0) {
+        //log::debug("{}:{}({})", __func__, __LINE__, p0);
         if (auto a = audio(p0); a.isOk())
             if (a.unwrap().contains("url"))
                 return a.unwrapOr("").get("url").unwrap().asString().unwrapOr("").c_str();
@@ -114,6 +125,7 @@ class $modify(MLE_LevelTools, LevelTools) {
     };
 
     $override static int artistForAudio(int p0) {
+        //log::debug("{}:{}({})", __func__, __LINE__, p0);
         if (auto a = audio(p0); a.isOk())
             if (a.unwrap().contains("artist"))
                 return a.unwrap().get("artist").unwrap().asInt().unwrapOr(0);

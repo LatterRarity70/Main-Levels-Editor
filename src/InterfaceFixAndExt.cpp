@@ -341,7 +341,7 @@ class $modify(MLE_EditorUI, EditorUI) {
         }
 		return true;
     }
-    void openSetupWindows() {
+    void openSetupWindows(float = 0.f) {
         //impinfo in level object was created at .level import function
         if (auto impinfo = level::isImported(m_editorLayer->m_level)) {
             //coins replacer
@@ -380,7 +380,7 @@ class $modify(MLE_EditorUI, EditorUI) {
                     this->setTitle("Select Difficulty Sprite");
                     this->setMouseEnabled(true);
 
-                    Ref preview = CCSprite::create("diffIcon_01_btn_001.png");
+                    Ref preview = CCSprite::create();
                     this->m_buttonMenu->addChildAtPosition(preview, Anchor::Center, { 0.f, 20.000f });
                     preview->setScale(1.350f);
 
@@ -449,7 +449,7 @@ class $modify(MLE_EditorUI, EditorUI) {
     };
     $override void onSettings(cocos2d::CCObject* sender) {
         EditorUI::onSettings(sender);
-        queueInMainThread([a = Ref(this)] { if (a) a->openSetupWindows(); });
+        scheduleOnce(schedule_selector(MLE_EditorUI::openSetupWindows), 0.f);
     }
 };
 

@@ -9,7 +9,7 @@ else()
     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 endif()
 
-project(main)
+project(MLE VERSION 8.0.0 LANGUAGES CXX)
 
 file(GLOB SOURCES src/*.cpp) # hi
 message(${SOURCES})

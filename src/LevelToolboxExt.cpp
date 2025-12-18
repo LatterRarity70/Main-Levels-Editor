@@ -59,7 +59,7 @@ LEVEL INTEGRITY VERIFY BYPASS
 class $modify(MLE_MusicDownloadManager, MusicDownloadManager) {
     gd::string pathForSFX(int id) {
         //log::debug("{}:{}({})", __func__, __LINE__, id);
-        std::filesystem::path ref = MusicDownloadManager::pathForSFX(id);
+        std::filesystem::path ref = MusicDownloadManager::pathForSFX(id).c_str();
         if (auto as = fmt::format("sfx/{}{}", id, ref.extension()); existsInPaths(as.c_str())) {
             return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0);
         }
@@ -74,7 +74,7 @@ class $modify(MLE_MusicDownloadManager, MusicDownloadManager) {
         if (auto sc = CCScene::get())
             if (sc->getChildByType<LoadingLayer>(0))
                 return MusicDownloadManager::pathForSong(id);
-        std::filesystem::path ref = MusicDownloadManager::pathForSong(id);
+        std::filesystem::path ref = MusicDownloadManager::pathForSong(id).c_str();
         if (auto as = fmt::format("songs/{}{}", id, ref.extension()); existsInPaths(as.c_str())) {
             return CCFileUtils::get()->fullPathForFilename(as.c_str(), 0);
         }

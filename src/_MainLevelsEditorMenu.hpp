@@ -102,8 +102,8 @@ protected:
                         auto toWrite = matjson::Value(content);
                         toWrite.erase("file");
                         auto path = content["file"].asString().unwrapOr("");
-                        file::createDirectoryAll(std::filesystem::path(path).parent_path());
-                        file::writeString(path, toWrite.dump());
+                        file::createDirectoryAll(std::filesystem::path(path).parent_path()).err();
+                        file::writeString(path, toWrite.dump()).err();
                     }
                 );
                 input->setScale(0.725f);
@@ -116,30 +116,30 @@ protected:
                     { input->setString(def().dump().c_str()); });
             };
         if (artists) {
-            addInput("Name", 174.000f, "name", [id] -> matjson::Value {
+            addInput("Name", 174.000f, "name", [id]() -> matjson::Value {
                 return LT::nameForArtist(id()).c_str(); }, "artists"_h
             );
-            addInput("Newgrounds", 132.000f, "ng", [id] -> matjson::Value {
+            addInput("Newgrounds", 132.000f, "ng", [id]() -> matjson::Value {
                 return LT::ngURLForArtist(id()).c_str(); }, "artists"_h
             );
-            addInput("YouTube", 90.000f, "yt", [id] -> matjson::Value {
+            addInput("YouTube", 90.000f, "yt", [id]() -> matjson::Value {
                 return LT::ytURLForArtist(id()).c_str(); }, "artists"_h
             );
-            addInput("Facebook", 46.000f, "fb", [id] -> matjson::Value {
+            addInput("Facebook", 46.000f, "fb", [id]() -> matjson::Value {
                 return LT::fbURLForArtist(id()).c_str(); }, "artists"_h
             );
         }
         else {
-            addInput("Track Filename", 174.000f, "file", [id] -> matjson::Value { 
+            addInput("Track Filename", 174.000f, "file", [id]() -> matjson::Value {
                 return LT::getAudioFileName(id()).c_str(); }
             );
-            addInput("Track Title", 132.000f, "title", [id] -> matjson::Value { 
+            addInput("Track Title", 132.000f, "title", [id]() -> matjson::Value {
                 return LT::getAudioTitle(id()).c_str(); }
             );
-            addInput("Track URL", 90.000f, "url", [id] -> matjson::Value { 
+            addInput("Track URL", 90.000f, "url", [id]() -> matjson::Value {
                 return LT::urlForAudio(id()).c_str(); }
             );
-            addInput("Artist ID", 46.000f, "artist", [id] -> matjson::Value { 
+            addInput("Artist ID", 46.000f, "artist", [id]() -> matjson::Value {
                 return LT::artistForAudio(id()); }
             );
         }
@@ -669,7 +669,7 @@ protected:
 
             //edit
             CCMenuItemSpriteExtra* edit_audio = CCMenuItemExt::createSpriteExtra(
-                btnspr("Edit tracks"), [__this = Ref(this)](auto) {
+                btnspr("Edit tracks"), [__this = Ref(this)](void*) {
                     __this->addAudioSetupMenu(not "for artists");
                 }
             );
@@ -682,7 +682,7 @@ protected:
 
             //edit_artists
             CCMenuItemSpriteExtra* edit_artists = CCMenuItemExt::createSpriteExtra(
-                btnspr("Edit artists"), [__this = Ref(this)](auto) {
+                btnspr("Edit artists"), [__this = Ref(this)](void*) {
                     __this->addAudioSetupMenu("for artists");
                 }
             );
@@ -695,7 +695,7 @@ protected:
 
             //open_songs
             CCMenuItemSpriteExtra* open_songs = CCMenuItemExt::createSpriteExtra(
-                btnspr("View soundtracks"), [__this = Ref(this)](auto) {
+                btnspr("View soundtracks"), [__this = Ref(this)](void*) {
                     Ref a = LevelSelectLayer::create(0);
                     __this->getParent()->addChild(a);
                     __this->setZOrder(11);
@@ -736,7 +736,7 @@ protected:
                     }*/
                 }
                 CCMenuItemSpriteExtra* exportAs = CCMenuItemExt::createSpriteExtra(
-                    btnspr("Export as .json"), [textinput](auto) {
+                    btnspr("Export as .json"), [textinput](void*) {
                         if (!GameManager::get()->getGameLayer()) return Notification::create(
                             "You are not in a level", NotificationIcon::Error
                         )->show();
@@ -813,7 +813,7 @@ protected:
                 SimpleTextArea::create(fmt::format(
                     "* Theese tools will generate stuff at config dir..."
                     , getMod()->getID())),
-                [__this = Ref(this)](auto) {
+                [__this = Ref(this)](void*) {
                     for (auto p : {
                         getMod()->getConfigDir() / getMod()->getID(),
                         getMod()->getConfigDir() / "levels",

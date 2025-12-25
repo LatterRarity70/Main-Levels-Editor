@@ -70,7 +70,7 @@ class $modify(MLE_AchievementManager, AchievementManager) {
 
             file::writeToJson(CCFileUtils::get()->fullPathForFilename(
                 "achievements.json", 0
-            ).c_str(), val);
+            ).c_str(), val).err();
         }
         else {
             AchievementManager::addAchievement(
@@ -83,7 +83,7 @@ class $modify(MLE_AchievementManager, AchievementManager) {
     $override void addManualAchievements() {
         if (!THE_DATA_DRIVEN_ACHIEVEMENTS) return AchievementManager::addManualAchievements();
         if (!existsInPaths("achievements.json")) { // generate default file
-            file::writeStringSafe(getMod()->getConfigDir() / "achievements.json", "{}");
+            file::writeStringSafe(getMod()->getConfigDir() / "achievements.json", "{}").err();
             auto object = new CCObject();
             object->autorelease();
             setUserObject("is-data-file-generating"_spr, object);

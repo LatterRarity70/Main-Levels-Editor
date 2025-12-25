@@ -311,7 +311,7 @@ class $modify(MLE_EditorPauseLayer, EditorPauseLayer) {
         if (auto impinfo = level::isImported(m_editorLayer->m_level)) {
             auto k = ConfigureLevelFileDataPopup::create(this->m_editorLayer, impinfo->getID());
             if (k) if (auto a = typeinfo_cast<CCMenuItem*>(k->querySelector("save_level"_spr))) {
-                a->setTag(true); //disable saveLevel call..
+                a->setTag("DontSaveLevel"_h); //disable saveLevel call..
                 a->activate();
             }
         }
@@ -370,13 +370,13 @@ class $modify(MLE_EditorUI, EditorUI) {
                 }
             );
             //difficulty sprite selector
-            class DiffcltySelector : public Popup<GJGameLevel*, std::filesystem::path> {
+            class DiffcltySelector : public Popup<LevelEditorLayer*, std::filesystem::path> {
                 void scrollWheel(float x, float y) override {
                     if (std::fabs(x) > 5.f) if (auto a = m_buttonMenu) if (auto item = a->getChildByType<CCMenuItem>(
                         1 + (x < 0.f)
                     )) item->activate();
                 }
-                bool setup(GJGameLevel* level, std::filesystem::path related_File) override {
+                bool setup(LevelEditorLayer* editor, std::filesystem::path related_File) override {
                     this->setTitle("Select Difficulty Sprite");
                     this->setMouseEnabled(true);
 
@@ -387,7 +387,7 @@ class $modify(MLE_EditorUI, EditorUI) {
                     Ref name = CCLabelBMFont::create("diffIcon_01_btn_001.png", "chatFont.fnt");
                     this->m_buttonMenu->addChildAtPosition(name, Anchor::Bottom, { 0.f, 69.000f });
 
-                    auto updatePreview = [=](bool zxc = false) { start:
+                    auto updatePreview = [=, level = editor->m_level](bool zxc = false) { start:
 						auto frameName = fmt::format("diffIcon_{:02d}_btn_001.png", (int)level->m_difficulty);
                         if (preview) {
                             if (CCSpriteFrameCache::get()->m_pSpriteFrames->objectForKey(frameName.c_str())) {
@@ -408,31 +408,32 @@ class $modify(MLE_EditorUI, EditorUI) {
                     updatePreview();
 
                     this->m_buttonMenu->addChildAtPosition(CCMenuItemExt::createSpriteExtra(
-                        CCLabelBMFont::create("<", "bigFont.fnt"), [=, level = Ref(level)](void*) { 
+                        CCLabelBMFont::create("<", "bigFont.fnt"), [=, level = Ref(editor->m_level)](void*) {
                             level->m_difficulty = (GJDifficulty)((int)level->m_difficulty - 1); updatePreview(); 
                         }
                     ), Anchor::Left, { 32.f, 0.f });
 
                     this->m_buttonMenu->addChildAtPosition(CCMenuItemExt::createSpriteExtra(
-                        CCLabelBMFont::create(">", "bigFont.fnt"), [=, level = Ref(level)](void*) {
+                        CCLabelBMFont::create(">", "bigFont.fnt"), [=, level = Ref(editor->m_level)](void*) {
                             level->m_difficulty = (GJDifficulty)((int)level->m_difficulty + 1); updatePreview();
                         }
                     ), Anchor::Right, { -32.f, 0.f });
 
                     this->m_buttonMenu->addChildAtPosition(CCMenuItemExt::createSpriteExtra(
                         ButtonSprite::create("   Save   ", "bigFont.fnt", "GJ_button_05.png", 0.6f), 
-                        [this, level, related_File](void*) {
+                        [this, editor, related_File](void*) {
                             Ref(this)->keyBackClicked();
-                            level::exportLevelFile(Ref(level), related_File).isOk();
+                            EditorPauseLayer::create(editor)->saveLevel();
+                            level::exportLevelFile(editor->m_level, related_File).isOk();
                         }
                     ), Anchor::Bottom, { 0.f, 32.f });
 
 					return true;
                 }
             public:
-                static DiffcltySelector* create(GJGameLevel* level, std::filesystem::path related_File) {
+                static DiffcltySelector* create(LevelEditorLayer* m_editorLayer, std::filesystem::path related_File) {
                     auto ret = new DiffcltySelector();
-                    if (ret->initAnchored(266.6f, 169.000f, level, related_File)) {
+                    if (ret->initAnchored(266.6f, 169.000f, m_editorLayer, related_File)) {
                         ret->autorelease();
                         return ret;
                     }
@@ -440,10 +441,12 @@ class $modify(MLE_EditorUI, EditorUI) {
                     return nullptr;
                 }
             };
-            if (REPLACE_DIFFICULTY_SPRITE) DiffcltySelector::create(Ref(m_editorLayer->m_level), impinfo->getID())->show();
+            if (REPLACE_DIFFICULTY_SPRITE) DiffcltySelector::create(
+                Ref(m_editorLayer), impinfo->getID()
+            )->show();
             // full meta data editor
             ConfigureLevelFileDataPopup::create(
-                this->m_editorLayer, impinfo->getID()
+                m_editorLayer, impinfo->getID()
             )->show();
         }
     };

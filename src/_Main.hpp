@@ -76,7 +76,7 @@ namespace MLE {
         if (cocos::fileExistsInSearchPaths((val + ".txt").c_str())) file::writeStringSafe(
             CCFileUtils::get()->fullPathForFilename((val + ".txt").c_str(), 0).c_str(),
             createListingIDs(list)
-        );
+        ).err();
         else {
             Mod::get()->setSettingValue<std::string>(val, createListingIDs(list));
             Mod::get()->saveData().isOk();
@@ -200,15 +200,22 @@ protected:
         CCMenuItemSpriteExtra* save_level = CCMenuItemExt::createSpriteExtra(
             SimpleTextArea::create("SAVE LEVEL")->getLines()[0],
             [editor, related_File](CCNode* item) {
-                EditorPauseLayer::create(editor)->saveLevel();
+                if (!editor) return;
+                if (!editor->isRunning()) return;
+                if (item->getTag() == "DontSaveLevel"_h) void();
+				else EditorPauseLayer::create(editor)->saveLevel();
                 if (auto err = level::exportLevelFile(editor->m_level, related_File).err())
                     Notification::create(
-                        "failed to export level: " + err.value_or("unknown error"),
+                        "  Failed to export level: \n  " + err.value_or("unknown error"),
                         NotificationIcon::Error
                     )->show();
-                else Notification::create("level saved to file!", NotificationIcon::Info)->show();
+                else
+                    Notification::create(
+                        "Level saved to file!",
+                        NotificationIcon::Info
+                    )->show();
                 LocalLevelManager::get()->init();
-                Notification::create("local level manager was reinitialized", NotificationIcon::Info)->show();
+                Notification::create("Local level manager was reinitialized", NotificationIcon::Info)->show();
             }
         );
         save_level->m_scaleMultiplier = 0.95;
@@ -227,6 +234,7 @@ protected:
                 scroll->scrollToTop();
             }
         );
+        sort->activate();
         sort->m_scaleMultiplier = 0.97;
         sort->setID("sort"_spr);
         sort->setAnchorPoint({ 0.f, 0.5f });

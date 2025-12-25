@@ -1,3 +1,6 @@
+# v8.0.0-beta.25
+fix recursion at level save
+
 # v8.0.0-beta.24
 - fix crash with settings button in editor
 - fix softlocking lag at menu loop randomizer mod loading

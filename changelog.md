@@ -1,3 +1,6 @@
+# v8.0.0-beta.26
+Fix out of range crash when exporting levels (#81, by hiimjasmine00)
+
 # v8.0.0-beta.25
 fix recursion at level save
 

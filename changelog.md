@@ -1,8 +1,11 @@
-# v8.0.0-beta.26
+# v8.0.0-beta.27
 - Update README.md
 - Warn for zip related functions on android
 - Force showing for LevelSettingsLayer (android bug)
 - Fix listing setting update when you add level. (insert tool)
+
+# v8.0.0-beta.26
+Fix out of range crash when exporting levels (#81, by hiimjasmine00)
 
 # v8.0.0-beta.25
 fix recursion at level save

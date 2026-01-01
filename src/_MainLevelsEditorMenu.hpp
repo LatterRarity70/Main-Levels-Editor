@@ -429,7 +429,8 @@ protected:
                                 auto level_export = level::exportLevelFile(level, path);
                                 if (level_export.isOk()) {
                                     auto dbg_json = level_export.unwrapOrDefault();
-                                    dbg_json["levelString"] = dbg_json["levelString"].asString().unwrapOrDefault().erase(36, 9999999) + "...";
+                                    auto level_string = dbg_json["levelString"].asString().unwrapOrDefault();
+                                    if (level_string.size() > 35) dbg_json["levelString"] = level_string.erase(36, 9999999) + "...";
 
                                     auto body = std::stringstream();
 

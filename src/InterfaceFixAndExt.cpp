@@ -342,6 +342,10 @@ class $modify(MLE_EditorUI, EditorUI) {
 		return true;
     }
     void openSetupWindows(float = 0.f) {
+        //what the fuck
+        if (!CCScene::get()->getChildByType<LevelSettingsLayer>(0)) {
+            LevelSettingsLayer::create(m_editorLayer->m_levelSettings, m_editorLayer)->show();
+        }
         //impinfo in level object was created at .level import function
         if (auto impinfo = level::isImported(m_editorLayer->m_level)) {
             //coins replacer

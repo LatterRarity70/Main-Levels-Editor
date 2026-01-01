@@ -32,6 +32,11 @@ protected:
                 list.erase(tarp);
                 list.insert(tarp, target_id);
             }
+            else {
+                auto endp = std::find(list.begin(), list.end(), -2);
+                if (endp == list.end()) endp = std::find(list.begin(), list.end(), -1);
+                list.insert(endp == list.end() ? endp : endp, target_id);
+            }
         }
 
         MLE::updateListingIDs(list);
@@ -89,6 +94,8 @@ protected:
                 Ref input = TextInput::create(
                     menu->getContentWidth() - 32.f, label->getString()
                 );
+                input->setFilter(" !\"#$ % &'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+                input->getInputNode()->m_allowedChars = " !\"#$ % &'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
                 input->setCallback([id, type, valname](std::string str)
                     {
                         if (!MLE_LevelsInJSON::get()->contains(type)) {
@@ -183,9 +190,11 @@ protected:
             return aw;
             };
 
-        auto btnspr = [lopts](const char* a) {
+        auto btnspr = [lopts](const char* a, bool disabl = false) {
             auto aw = ButtonSprite::create(a, "bigFont.fnt", "GJ_button_05.png");
             aw->setLayoutOptions(lopts);
+            aw->m_label->setOpacity(disabl ? 127 : 255);
+            aw->m_BGSprite->setOpacity(disabl ? 127 : 255);
             return aw;
             };
 
@@ -225,13 +234,25 @@ protected:
         //padding
         menu->addChild(CCLayerColor::create({ 0,0,0,0 }, 12, 6), 0, "presist"_h);
 
+        bool MOBILE = true GEODE_DESKTOP(-1);
         if ("page1") {
             //title
             menu->addChild(titlespr("Shared Level Files"));
 
+            if (MOBILE) {
+                auto warn = CCLabelBMFont::create(
+                    "May not working on mobile platforms!"
+                    , "chatFont.fnt"
+                );
+                limitNodeWidth(warn, 240.f, 110.1f, 0.1f);
+                warn->setColor({ 255, 39, 39 });
+                warn->setID("geode, fix your fucking zip utils");
+                menu->addChild(warn);
+            }
+
             //load_level
             CCMenuItemSpriteExtra* load_level = CCMenuItemExt::createSpriteExtra(
-                btnspr("Open .level file"), [__this = Ref(this)](auto) {
+                btnspr("Open .level file", MOBILE), [__this = Ref(this)](auto) {
                     auto IMPORT_PICK_OPTIONS = file::FilePickOptions{
                         std::nullopt, {{ "Extended Shared Level File", { "*.level" } }}
                     };
@@ -292,7 +313,7 @@ protected:
 
             //edit_level
             CCMenuItemSpriteExtra* edit_level = CCMenuItemExt::createSpriteExtra(
-                btnspr("Edit .level file"), [__this = Ref(this)](auto) {
+                btnspr("Edit .level file", MOBILE), [__this = Ref(this)](auto) {
                     auto IMPORT_PICK_OPTIONS = file::FilePickOptions{
                         std::nullopt, {{ "Extended Shared Level File", { "*.level" } }}
                     };
@@ -351,7 +372,7 @@ protected:
 
             //insert
             CCMenuItemSpriteExtra* insert_to_level_list = CCMenuItemExt::createSpriteExtra(
-                btnspr("Insert to Level List"), [id_input](void*) {
+                btnspr("Insert to Level List", MOBILE), [id_input](void*) {
                     if (!GameManager::get()->getGameLayer()) {
                         return Notification::create("You are not in a level", NotificationIcon::Error)->show();
                     }
@@ -361,9 +382,12 @@ protected:
                     // parse input
                     auto target_id = resolveListEntry(id_input, level);
 
+                    auto errcd = std::error_code();
+                    std::filesystem::create_directories(getMod()->getConfigDir() / "levels", errcd);
+
                     // export
                     auto export_result = level::exportLevelFile(
-                        level, getMod()->getConfigDir() / fmt::format("{}.level", target_id)
+                        level, getMod()->getConfigDir() / "levels" / fmt::format("{}.level", target_id)
                     );
                     if (!export_result) return Notification::create(
                         "Failed to export level\n" + export_result.err().value_or("UNK ERROR")
@@ -382,7 +406,7 @@ protected:
 
             //export
             CCMenuItemSpriteExtra* export_level = CCMenuItemExt::createSpriteExtra(
-                btnspr("Export into .level file"), [__this = Ref(this)](void*) {
+                btnspr("Export into .level file", MOBILE), [__this = Ref(this)](void*) {
                     if (!GameManager::get()->getGameLayer()) {
                         Notification::create("You are not in a level", NotificationIcon::Error)->show();
                         return;
@@ -473,7 +497,7 @@ protected:
 
             //tp
             CCMenuItemSpriteExtra* tp_create = CCMenuItemExt::createSpriteExtra(
-                btnspr("In resource pack (TP)"), [__this = Ref(this)](void*) -> void {
+                btnspr("In resource pack (TP)", MOBILE), [__this = Ref(this)](void*) -> void {
                     auto err = std::error_code();
                     namespace fs = std::filesystem;
                     auto packs = getMod()->getConfigDir().parent_path() / "geode.texture-loader" / "packs";
@@ -558,7 +582,7 @@ protected:
             }
 
             CCMenuItemSpriteExtra* mod_create = CCMenuItemExt::createSpriteExtra(
-                btnspr("In modified .geode package"), [__this = Ref(this)](void*) {
+                btnspr("In modified .geode package", MOBILE), [__this = Ref(this)](void*) {
                     auto err = std::error_code();
                     namespace fs = std::filesystem;
                     auto modid = fmt::format(
@@ -658,6 +682,10 @@ protected:
             page2toggle->setScale(0.550f);
             page2toggle->setID("page-2"_spr);
             m_buttonMenu->addChildAtPosition(page2toggle, Anchor::Bottom, { 0.f, 0.f });
+            if (MOBILE) page2toggle->runAction(CCRepeatForever::create(CCSequence::create(
+                CCEaseSineInOut::create(CCScaleTo::create(1.f, 0.550f)),
+                CCEaseSineInOut::create(CCScaleTo::create(1.1f, 0.600f)), nullptr
+            )));
         }
 
         if ("page2") {
@@ -729,7 +757,7 @@ protected:
                 if (textinput) {
                     textinput->setID("input.exportAs"_spr);
                     textinput->setFilter("0123456789-");
-                    textinput->setMaxCharCount(6);
+                    textinput->setMaxCharCount(12);
                     /*if (auto game = GameManager::get()->m_gameLayer) {
                         if (auto level = game->m_level)
                             input->

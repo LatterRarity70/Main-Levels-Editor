@@ -43,7 +43,7 @@ class $modify(MLE_LevelSelectExt, LevelSelectLayer) {
             menu->setID("menu"_spr);
             menu->setScale(0.75f);
             menu->setAnchorPoint(CCPointZero);
-            menu->addChild(MainLevelsEditorMenu::createButtonForMe());
+            menu->addChild(MLE_MainMenu::createButtonForMe());
             addChildAtPosition(menu, Anchor::BottomRight, { -25.f, 25.f }, false);
             menu->setZOrder(228);
 
@@ -497,7 +497,7 @@ class $modify(MLE_PauseExt, PauseLayer) {
                         limitNodeWidth(image, ref->getContentWidth(), 99.f, 0.1f);
                         auto item = CCMenuItemExt::createSpriteExtra(
                             image, [](void*) {
-                                MainLevelsEditorMenu::create()->show();
+                                MLE_MainMenu::create()->show();
                             }
                         );
                         item->setID("menu-button"_spr);

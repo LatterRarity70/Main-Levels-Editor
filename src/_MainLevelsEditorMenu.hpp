@@ -1,6 +1,6 @@
 #pragma once
 
-class MainLevelsEditorMenu : public geode::Popup<> {
+class MLE_MainMenu : public geode::Popup<> {
 protected:
     using FileEvent = Task<Result<std::filesystem::path>>;
     EventListener<FileEvent> m_listener;
@@ -211,6 +211,127 @@ protected:
             settings->setLayoutOptions(lopts);
             settings->setID("settings"_spr);
             menu->addChild(settings, 0, "presist"_h);
+        };
+
+        //ListingEditTool
+        CCMenuItemSpriteExtra* ListingEditTool = CCMenuItemExt::createSpriteExtra(
+            btnspr("ID Listing Editor"), [__this = Ref(this)](auto) {
+                //MLE_ListingEditTool::create()->show();
+                auto pages = CCArray::create();
+
+                for (auto& gdstrkey : Mod::get()->getSettingKeys()) {
+                    if (!string::contains(gdstrkey.c_str(), "_LISTING")) continue;
+                    Ref list = GJLevelList::create();
+                    list->m_listType = GJLevelType::Editor;
+                    list->m_listDesc = ZipUtils::base64URLEncode(
+                        "This list dummy have <cg>realtime sync</c> with real "
+                        "<cy>" + gdstrkey + "</c> setting of mod.");
+                    list->m_listName = gdstrkey.c_str();
+                    auto addToListFN = [](int id, GJLevelList* list)
+                        {
+                            if (auto level = LevelTools::getLevel(id, false)) {
+                                if (string::contains(list->m_listName.c_str(), "AUDIO")) {
+                                    level->m_levelName = fmt::format(
+                                        " \n{}\nBy: {}",
+                                        LevelTools::getAudioTitle(id).c_str(),
+                                        LevelTools::nameForArtist(LevelTools::artistForAudio(id)).c_str()
+                                    );
+                                    level->m_audioTrack = "space"_h;
+                                }
+                                list->addLevelToList(level);
+                            }
+                        };
+                    for (auto id : MLE::getListingIDs(list->m_listName.c_str())) {
+						addToListFN(id, list);
+                    }
+                    Ref layer = LevelListLayer::create(list);
+                    findFirstChildRecursive<CCMenuItem>(
+                        layer, [layer, addToListFN](CCMenuItem* item) {
+                            auto is = &isSpriteFrameName;
+                            auto ass = &CCMenuItemExt::assignCallback<CCMenuItem>; //hot
+                            if (is(item, "GJ_deleteBtn_001.png")) item->setVisible(0);
+                            if (is(item, "GJ_updateBtn_001.png")) item->setVisible(0);
+                            if (is(item, "GJ_chatBtn_001.png")) item->setVisible(0);
+                            if (is(item, "GJ_plainBtn_001.png")) item->setVisible(0);
+                            if (is(item, "GJ_duplicateBtn_001.png")) item->setVisible(0);
+                            if (is(item, "GJ_shareBtn_001.png")) {
+                                item->setVisible(0);
+                                auto newb = CCMenuItemExt::createSpriteExtraWithFrameName(
+                                    "GJ_newBtn_001.png", 0.7f, [layer, addToListFN](void*) {
+                                        Ref input = TextInput::create(310.f, "ID");
+                                        input->getInputNode()->m_allowedChars = "-0123456789";
+                                        input->setPositionY(42.000f);
+                                        auto popup = createQuickPopup(
+                                            "Add ID:", "\n ", "Add", nullptr,
+                                            [input, layer, addToListFN](void*, bool) {
+                                                input->getString();
+                                                addToListFN(
+                                                    utils::numFromString<int>(input->getString().c_str()).unwrapOrDefault(),
+                                                    layer->m_levelList
+                                                );
+												layer->onRefreshLevelList(0);
+                                            }
+                                        );
+										popup->m_buttonMenu->addChild(input);
+                                    }
+                                );
+								newb->setPosition(item->getPosition());
+								item->getParent()->addChild(newb);
+                            }
+                            return false;
+                        }
+                    );
+                    for (auto a : layer->getChildrenExt()) {
+                        if (isSpriteFrameName(a, "GJ_sideArt_001.png")) 
+                            a->setVisible(false);
+                    }
+                    if (auto a = layer->getChildByType<CCTextInputNode>(0))
+                        a->setTouchEnabled(false);
+					pages->addObject(layer);
+                    //updaterrr
+                    layer->runAction(CCRepeatForever::create(CCSequence::create(
+						CCDelayTime::create(0.1f),
+                        CallFuncExt::create(
+                            [layer] {
+								auto list = MLE::getListingIDs();
+								list.clear();
+                                auto strl = layer->m_levelList->m_levelsString;
+                                for (auto id : string::split(strl.c_str(), ",")) list.push_back(
+                                    utils::numFromString<int>(id.c_str()).unwrapOrDefault()
+                                );
+								MLE::updateListingIDs(list, layer->m_levelList->m_listName);
+                                if (auto l = layer->getChildByType<CCLabelBMFont>(0))
+									l->setString(MLE::createListingIDs(list).c_str());
+                                if (auto l = layer->getChildByType<LoadingCircle>(0))
+									l->setVisible(false);
+                            }
+                        ),
+                        nullptr
+					)));
+                }
+                auto layer = BoomScrollLayer::create(pages, 0, 0);
+                layer->m_extendedLayer->runAction(CCSequence::create(
+                    CCEaseBackOut::create(CCMoveBy::create(1.0f, { -42.f, 0.f })),
+                    CCEaseExponentialIn::create(CCMoveBy::create(0.5f, { 42.f, 0.f })),
+                    CallFuncExt::create([layer] { layer->moveToPage(layer->m_page); }),
+                    nullptr
+                ));
+                layer->setPagesIndicatorPosition({ 74.f, layer->getContentHeight() - (320.000f - 312.000f) });
+                {
+                    auto dotsBG = CCScale9Sprite::create("square02_small.png");
+                    dotsBG->setPosition(layer->m_dotPosition);
+                    dotsBG->setAnchorPoint(CCPointMake(0.5f, 0.1f));
+                    dotsBG->setContentSize(CCSizeMake(52.f, 77.f));
+                    dotsBG->setOpacity(122);
+                    layer->addChild(dotsBG, 0);
+                }
+                switchToScene(layer);
+            }
+        );
+        if (menu and ListingEditTool) {
+            ListingEditTool->setLayoutOptions(lopts);
+            ListingEditTool->setID("ListingEditTool"_spr);
+            menu->addChild(ListingEditTool, 0, "presist"_h);
         };
 
         //reload_levels_cache
@@ -875,8 +996,8 @@ protected:
         return true;
     }
 public:
-    static MainLevelsEditorMenu* create() {
-        auto ret = new MainLevelsEditorMenu();
+    static MLE_MainMenu* create() {
+        auto ret = new MLE_MainMenu();
         if (ret->initAnchored(258.000f, 284.000f)) {
             ret->autorelease();
             return ret;

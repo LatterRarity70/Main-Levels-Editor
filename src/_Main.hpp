@@ -72,11 +72,11 @@ namespace MLE {
         return new_listing;
     }
 
-    inline void updateListingIDs(const std::vector<int>& list, std::string val = "LEVELS_LISTING") {
+    inline auto updateListingIDs(const std::vector<int>& list, std::string val = "LEVELS_LISTING") {
         auto slist = createListingIDs(list);
         if (cocos::fileExistsInSearchPaths((val + ".txt").c_str())) {
-            auto path = CCFileUtils::get()->fullPathForFilename((val + ".txt").c_str(), 0).c_str();
-            log::info("Saving `{}` to `{}`...", slist, path);
+            auto path = CCFileUtils::get()->fullPathForFilename((val + ".txt").c_str(), 0);
+            log::info("Saving `{}` to `{}`...", slist, path.c_str());
             file::writeStringSafe(path, slist).err();
         }
         else {

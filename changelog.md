@@ -1,3 +1,7 @@
+# v8.0.0-beta.28
+- Fix char filter in listing settings (allow minus)
+- Add IDs Listing editor
+
 # v8.0.0-beta.27
 - Update README.md
 - Warn for zip related functions on android

@@ -1,5 +1,47 @@
 #include <_Main.hpp>
 
+static auto updateMainLevel(
+    Ref<GJGameLevel> level, int levelID, bool dontGetLevelString
+) {
+	if (!level) level = GJGameLevel::create();
+
+    if (MLE_LevelsInJSON::get()->contains(levelID)) {
+        /*log::debug(
+            "MLE_LocalLevelManager::m_mainLevelsInJSON[{}]->{}",
+            levelID, MLE_LocalLevelManager::m_mainLevelsInJSON[levelID].dump()
+        );*/
+        auto loadedLevel = GJGameLevel::create();
+        level::updateLevelByJson(MLE_LevelsInJSON::get()->at(levelID), loadedLevel);
+        if (auto aw = level::isImported(loadedLevel)) level::isImported(level, aw->getID());
+        //xd
+        level->m_levelString = loadedLevel->m_levelString.c_str();
+        level->m_stars = (loadedLevel->m_stars.value());
+        level->m_requiredCoins = loadedLevel->m_requiredCoins;
+        level->m_levelName = loadedLevel->m_levelName;
+        level->m_audioTrack = loadedLevel->m_audioTrack;
+        level->m_songID = loadedLevel->m_songID;
+        level->m_songIDs = loadedLevel->m_songIDs;
+        level->m_sfxIDs = loadedLevel->m_sfxIDs;
+        level->m_demon = (loadedLevel->m_demon.value());
+        level->m_twoPlayerMode = loadedLevel->m_twoPlayerMode;
+        level->m_difficulty = loadedLevel->m_difficulty;
+        level->m_capacityString = loadedLevel->m_capacityString;
+        level->m_levelID = (levelID);
+        level->m_timestamp = loadedLevel->m_timestamp;
+        level->m_levelLength = loadedLevel->m_levelLength;
+    };
+
+    level->m_levelID = levelID; // -1, -2 for listing exists. no default id pls
+    level->m_songID = !level->m_audioTrack ? level->m_songID : 0; // what the fuck why its ever was saved
+    level->m_levelType = GJLevelType::Main;
+    level->m_levelString = dontGetLevelString ? "" : level->m_levelString.c_str();
+
+    if (levelID == -1) level->m_levelName = "{Coming Soon Page}";
+    if (levelID == -2) level->m_levelName = "{The Tower Page}";
+
+    return level.data();
+}
+
 /*
 
 level getting update hook
@@ -10,40 +52,10 @@ level getting update hook
 class $modify(MLE_GameLevelManager, GameLevelManager) {
 
     $override GJGameLevel* getMainLevel(int levelID, bool dontGetLevelString) {
-        Ref level = GameLevelManager::getMainLevel(levelID, dontGetLevelString);
-
-        if (MLE_LevelsInJSON::get()->contains(levelID)) {
-            /*log::debug(
-                "MLE_LocalLevelManager::m_mainLevelsInJSON[{}]->{}",
-                levelID, MLE_LocalLevelManager::m_mainLevelsInJSON[levelID].dump()
-            );*/
-            auto loadedLevel = GJGameLevel::create();
-            level::updateLevelByJson(MLE_LevelsInJSON::get()->at(levelID), loadedLevel);
-            if (auto aw = level::isImported(loadedLevel)) level::isImported(level, aw->getID());
-            //xd
-            level->m_levelString = loadedLevel->m_levelString.c_str();
-            level->m_stars = (loadedLevel->m_stars.value());
-            level->m_requiredCoins = loadedLevel->m_requiredCoins;
-            level->m_levelName = loadedLevel->m_levelName;
-            level->m_audioTrack = loadedLevel->m_audioTrack;
-            level->m_songID = loadedLevel->m_songID;
-            level->m_songIDs = loadedLevel->m_songIDs;
-            level->m_sfxIDs = loadedLevel->m_sfxIDs;
-            level->m_demon = (loadedLevel->m_demon.value());
-            level->m_twoPlayerMode = loadedLevel->m_twoPlayerMode;
-            level->m_difficulty = loadedLevel->m_difficulty;
-            level->m_capacityString = loadedLevel->m_capacityString;
-            level->m_levelID = (levelID);
-            level->m_timestamp = loadedLevel->m_timestamp;
-            level->m_levelLength = loadedLevel->m_levelLength;
-        };
-
-        level->m_levelID = levelID; // -1, -2 for listing exists. no default id pls
-        level->m_songID = !level->m_audioTrack ? level->m_songID : 0; // what the fuck why its ever was saved
-        level->m_levelType = GJLevelType::Main;
-        level->m_levelString = dontGetLevelString ? "" : level->m_levelString.c_str();
-
-        return level;
+        return updateMainLevel(
+            GameLevelManager::getMainLevel(levelID, dontGetLevelString), 
+            levelID, dontGetLevelString
+        );
     };
 
 };
@@ -114,6 +126,8 @@ class $modify(MLE_LevelTools, LevelTools) {
         if (auto a = audio(p0); a.isOk())
             if (a.unwrap().contains("title"))
                 return a.unwrapOr("").get("title").unwrap().asString().unwrapOr("").c_str();
+		if (p0 == "empty"_h) return "";
+		if (p0 == "space"_h) return "                                  ";
         return LevelTools::getAudioTitle(p0).c_str();
     };
     $override static gd::string urlForAudio(int p0) {
@@ -168,39 +182,10 @@ class $modify(MLE_LevelTools, LevelTools) {
 
     //paranoic hook
     $override static GJGameLevel* getLevel(int levelID, bool dontGetLevelString) {
-        Ref level = LevelTools::getLevel(levelID, dontGetLevelString);
-
-        if (MLE_LevelsInJSON::get()->contains(levelID)) {
-            /*log::debug(
-                "MLE_LocalLevelManager::m_mainLevelsInJSON[{}]->{}",
-                levelID, MLE_LocalLevelManager::m_mainLevelsInJSON[levelID].dump()
-            );*/
-            auto loadedLevel = GJGameLevel::create();
-            level::updateLevelByJson(MLE_LevelsInJSON::get()->at(levelID), loadedLevel);
-            //xd
-            level->m_levelString = loadedLevel->m_levelString.c_str();
-            level->m_stars = (loadedLevel->m_stars.value());
-            level->m_requiredCoins = loadedLevel->m_requiredCoins;
-            level->m_levelName = loadedLevel->m_levelName;
-            level->m_audioTrack = loadedLevel->m_audioTrack;
-            level->m_songID = loadedLevel->m_songID;
-            level->m_songIDs = loadedLevel->m_songIDs;
-            level->m_sfxIDs = loadedLevel->m_sfxIDs;
-            level->m_demon = (loadedLevel->m_demon.value());
-            level->m_twoPlayerMode = loadedLevel->m_twoPlayerMode;
-            level->m_difficulty = loadedLevel->m_difficulty;
-            level->m_capacityString = loadedLevel->m_capacityString;
-            level->m_levelID = (levelID);
-            level->m_timestamp = loadedLevel->m_timestamp;
-            level->m_levelLength = loadedLevel->m_levelLength;
-        };
-
-        level->m_levelID = levelID; // -1, -2 for listing exists. no default id pls
-        level->m_songID = !level->m_audioTrack ? level->m_songID : 0; // what the fuck why its ever was saved
-        level->m_levelType = GJLevelType::Main;
-        level->m_levelString = dontGetLevelString ? "" : level->m_levelString.c_str();
-
-        return level;
+        return updateMainLevel(
+            LevelTools::getLevel(levelID, dontGetLevelString),
+            levelID, dontGetLevelString
+        );
     };
 
     $override static bool verifyLevelIntegrity(gd::string p0, int p1) {

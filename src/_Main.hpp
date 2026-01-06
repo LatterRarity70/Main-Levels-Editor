@@ -77,7 +77,7 @@ namespace MLE {
         if (cocos::fileExistsInSearchPaths((val + ".txt").c_str())) {
             auto path = CCFileUtils::get()->fullPathForFilename((val + ".txt").c_str(), 0);
             log::info("Saving `{}` to `{}`...", slist, path.c_str());
-            file::writeStringSafe(path, slist).err();
+            file::writeStringSafe(path.c_str(), slist).err();
         }
         else {
             log::info("Saving `{}` to settings...", slist);
